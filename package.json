@@ -2,7 +2,7 @@
   "name": "hugsy",
   "version": "0.0.1",
   "description": "🐧 Hugsy - Configuration management for Claude Code. Transform complex settings into simple, shareable team standards.",
-  "private": false,
+  "private": true,
   "type": "module",
   "scripts": {
     "build": "turbo build",
@@ -17,7 +17,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,json,yml,yaml}\"",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "turbo build && changeset publish"
+    "release": "turbo build && changeset publish",
+    "publish:ci": "changeset publish"
   },
   "keywords": [
     "ai",
