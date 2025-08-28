@@ -1,5 +1,17 @@
 # @hugsylabs/hugsy
 
+## 0.0.4
+
+### Patch Changes
+
+- 26cad30: feat: Improve error and log message formatting
+  - Add emoji prefixes for clearer error (⚠️) and info (ℹ️) messages
+  - Make console output more user-friendly and scannable
+
+- Updated dependencies [26cad30]
+  - @hugsylabs/hugsy-compiler@0.1.1
+  - @hugsylabs/hugsy-types@0.0.4
+
 ## 0.0.3
 
 ### Patch Changes
