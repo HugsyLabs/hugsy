@@ -117,7 +117,7 @@ export interface Plugin {
   hooks?: HookSettings;
   env?: Record<string, string>;
   commands?: Record<string, string | SlashCommand>; // Plugin can provide commands
-  transform?: (config: HugsyConfig) => HugsyConfig;
+  transform?: (config: HugsyConfig) => HugsyConfig | Promise<HugsyConfig>;
 }
 
 export interface Preset extends Plugin {
