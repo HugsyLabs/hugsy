@@ -1,0 +1,16 @@
+{
+  "name": "hugsy-complete-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Complete example showing all Hugsy features",
+  "scripts": {
+    "setup": "hugsy install",
+    "test": "echo 'Running tests...' && exit 0",
+    "build": "echo 'Building project...' && exit 0",
+    "lint": "echo 'Linting code...' && exit 0",
+    "deploy:staging": "echo 'Deploying to staging...' && exit 0"
+  },
+  "devDependencies": {
+    "@hugsylabs/hugsy": "workspace:*"
+  }
+}

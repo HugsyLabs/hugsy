@@ -1,0 +1,72 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Compiler > Snapshot Testing > should match snapshot for complete configuration > complete-configuration-output 1`] = `
+{
+  "cleanupPeriodDays": 30,
+  "env": {
+    "API_URL": "https://api.example.com",
+    "DEBUG": "false",
+    "NODE_ENV": "production",
+  },
+  "hooks": {
+    "on-tool-use": [
+      {
+        "hooks": [
+          {
+            "command": "eslint --fix",
+            "type": "command",
+          },
+        ],
+        "matcher": "**/*.{js,ts}",
+      },
+    ],
+  },
+  "includeCoAuthoredBy": true,
+  "model": "claude-3-opus-20240229",
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Write(**/test/**)",
+      "Bash(git *)",
+      "Bash(npm test)",
+    ],
+    "ask": [
+      "Bash(sudo *)",
+      "Bash(npm publish)",
+      "Write(**/production/**)",
+      "WebSearch",
+      "WebFetch",
+    ],
+    "deny": [
+      "Write(*:*password=*)",
+      "Write(*:*secret=*)",
+      "Write(*:*api_key=*)",
+      "Bash(rm -rf /*)",
+      "Bash(:(){ :|:& };:)",
+      "Read(**/.env)",
+      "Write(**/prod/**)",
+      "Write(**/node_modules/**)",
+    ],
+  },
+  "statusLine": {
+    "command": "git status --short",
+    "type": "command",
+  },
+}
+`;
+
+exports[`Compiler > Snapshot Testing > should match snapshot for minimal configuration > minimal-configuration-output 1`] = `
+{
+  "env": {},
+  "hooks": {},
+  "model": undefined,
+  "permissions": {
+    "allow": [
+      "Read(**)",
+    ],
+    "ask": [],
+    "deny": [],
+  },
+  "statusLine": undefined,
+}
+`;

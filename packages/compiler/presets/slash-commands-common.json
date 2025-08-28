@@ -1,0 +1,53 @@
+{
+  "name": "@hugsy/slash-commands-common",
+  "description": "Common slash commands for development workflows",
+  "commands": {
+    "dev": {
+      "content": "Start development workflow:\n\n1. Install dependencies: `pnpm install`\n2. Build all packages: `pnpm run build`\n3. Run tests: `pnpm test`\n4. Start watch mode: `pnpm run dev`\n\nCheck package build status and dependencies.",
+      "description": "Development workflow",
+      "category": "development"
+    },
+    "check": {
+      "content": "Run comprehensive checks on the codebase:\n\n1. **Type checking**: Run TypeScript compiler checks\n2. **Linting**: Check code quality with ESLint\n3. **Tests**: Run all test suites\n4. **Build**: Ensure all packages build successfully\n\nReport any issues found and suggest fixes.",
+      "description": "Run all checks",
+      "category": "development"
+    },
+    "fix": {
+      "content": "Fix common development issues based on: $ARGUMENTS\n\n## Available Fixes:\n\n### lint\n- Run ESLint with auto-fix: `pnpm lint --fix`\n- Fix any remaining manual issues\n\n### types\n- Check TypeScript errors: `pnpm type-check`\n- Fix type issues in the codebase\n\n### format\n- Run Prettier: `pnpm format`\n- Ensure consistent code formatting\n\nIf no argument provided, run all fixes in sequence.",
+      "description": "Fix common issues",
+      "argumentHint": "[lint|types|format]",
+      "category": "development"
+    },
+    "test": {
+      "content": "Run all tests and report results:\n\n1. Identify testing framework from package.json\n2. Run test suite: `pnpm test`\n3. Report results including:\n   - Tests passed/failed\n   - Coverage information\n   - Failing test details\n4. If tests fail, analyze and suggest fixes",
+      "description": "Run tests",
+      "category": "development"
+    },
+    "build": {
+      "content": "Build all packages:\n\n1. Clean previous builds: `rm -rf packages/*/dist`\n2. Run build: `pnpm run build`\n3. Verify build outputs\n4. Report any build errors",
+      "description": "Build project",
+      "category": "development"
+    },
+    "release": {
+      "content": "Prepare for releasing version $ARGUMENTS:\n\n## Pre-release Checklist\n1. Run all tests: `pnpm test`\n2. Run lint check: `pnpm lint`\n3. Build all packages: `pnpm build`\n4. Update version numbers in package.json files\n5. Update CHANGELOG.md with release notes\n\n## Release Steps\n1. Commit all changes\n2. Create and push tag: `git tag v$ARGUMENTS`\n3. Push to main branch\n4. Create GitHub release\n\nNote: Actual npm publish requires manual confirmation.",
+      "description": "Prepare a release",
+      "argumentHint": "[version]",
+      "category": "release"
+    },
+    "changelog": {
+      "content": "Generate changelog entry for recent changes:\n\n1. Check recent commits: `git log --oneline -20`\n2. Identify changes by category:\n   - ✨ Features\n   - 🐛 Bug Fixes\n   - 📚 Documentation\n   - ♻️ Refactoring\n   - 🔧 Configuration\n3. Update CHANGELOG.md with formatted entries\n4. Follow Keep a Changelog format",
+      "description": "Update changelog",
+      "category": "documentation"
+    },
+    "pr": {
+      "content": "Create pull request for current branch:\n\n1. Check current branch and changes\n2. Ensure all tests pass\n3. Push to remote\n4. Create PR with:\n   - Clear title describing the change\n   - Summary of what was changed and why\n   - Link to related issues\n   - Test instructions",
+      "description": "Create pull request",
+      "category": "git"
+    },
+    "commit": {
+      "content": "Create a well-structured git commit:\n\n1. Review changes: `git status` and `git diff`\n2. Determine commit type: feat, fix, docs, refactor, test, chore\n3. Stage files: `git add`\n4. Create commit with conventional format:\n   - type(scope): description\n5. Include issue references if applicable",
+      "description": "Create git commit",
+      "category": "git"
+    }
+  }
+}

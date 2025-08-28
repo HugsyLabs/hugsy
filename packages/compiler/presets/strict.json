@@ -1,0 +1,50 @@
+{
+  "name": "@hugsy/strict",
+  "version": "1.0.0",
+  "description": "Strict security settings for production environments",
+
+  "permissions": {
+    "deny": [
+      "Write(**/prod/**)",
+      "Write(**/production/**)",
+      "Write(*:*password*)",
+      "Write(*:*secret*)",
+      "Write(*:*key*)",
+      "Write(*:*token*)",
+      "Bash(rm *)",
+      "Bash(sudo *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(:(){ :|:& };:)",
+      "Bash(dd *)",
+      "Bash(mkfs *)",
+      "Read(**/.env*)",
+      "Read(**/credentials*)",
+      "Read(**/*secret*)",
+      "Read(**/.aws/*)",
+      "Read(**/.ssh/*)"
+    ],
+    "ask": ["Write(**)", "Bash(*)", "Edit(**)", "MultiEdit(**)"],
+    "allow": ["Read(**)", "LS(**)", "Glob(**)", "Grep(**)"]
+  },
+
+  "env": {
+    "NODE_ENV": "production",
+    "HUGSY_MODE": "strict"
+  },
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[Strict Mode] Tool use monitored'",
+            "timeout": 500
+          }
+        ]
+      }
+    ]
+  }
+}
