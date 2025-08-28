@@ -37,7 +37,7 @@ Hugsy provides a unified configuration system that:
 
 |                    | Without Hugsy           | With Hugsy              |
 |--------------------|-------------------------|-------------------------|
-| Config size        | 200+ lines JSON         | 20 lines JSON           |
+| Config size        | 200+ lines JSON         | 10 lines JSON           |
 | Team consistency   | ❌ Manual per developer | ✅ Presets + Plugins    |
 | Security           | ❌ Easy to miss         | ✅ Enforced rules       |
 | Slash Commands     | ❌ Scattered files      | ✅ Centralized          |
