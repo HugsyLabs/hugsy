@@ -19,12 +19,6 @@ export default {
       }
     });
     
-    // Add status line showing current branch
-    config.statusLine = {
-      type: 'command',
-      command: 'git branch --show-current'
-    };
-    
     return config;
   }
 };
