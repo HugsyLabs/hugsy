@@ -16,7 +16,7 @@
     "test:unit": "vitest run packages/",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,json,yml,yaml}\"",
     "changeset": "changeset",
-    "version": "changeset version",
+    "version": "changeset version && pnpm install --lockfile-only",
     "release": "turbo build && changeset publish",
     "publish:ci": "changeset publish"
   },
