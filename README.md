@@ -209,4 +209,4 @@ MIT
 
 ---
 
-Made with ❤️ by the HugsyLabs Team
+Made with ❤️ by the HugsyLabs🐧 Team 
