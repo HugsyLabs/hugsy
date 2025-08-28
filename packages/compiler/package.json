@@ -1,0 +1,55 @@
+{
+  "name": "@hugsylabs/hugsy-compiler",
+  "version": "0.0.1",
+  "description": "Configuration compiler for Claude Code settings",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "lint": "eslint . --ext .ts,.js",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "hugsy",
+    "compiler",
+    "configuration",
+    "claude",
+    "settings"
+  ],
+  "author": "Hugsy Labs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HugsyLab/hugsy.git",
+    "directory": "packages/compiler"
+  },
+  "bugs": {
+    "url": "https://github.com/HugsyLab/hugsy/issues"
+  },
+  "homepage": "https://github.com/HugsyLab/hugsy#readme",
+  "dependencies": {
+    "@hugsylabs/hugsy-types": "^0.0.1",
+    "@types/glob": "^9.0.0",
+    "glob": "^10.3.10",
+    "ora": "^8.0.1",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@vitest/ui": "^1.6.0",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

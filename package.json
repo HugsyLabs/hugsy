@@ -1,0 +1,65 @@
+{
+  "name": "hugsy",
+  "version": "0.0.1",
+  "description": "🐧 Hugsy - Configuration management for Claude Code. Transform complex settings into simple, shareable team standards.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "type-check": "turbo run type-check",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "pnpm build && vitest run tests/",
+    "test:unit": "vitest run packages/",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,json,yml,yaml}\"",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "turbo build && changeset publish"
+  },
+  "keywords": [
+    "ai",
+    "claude",
+    "copilot",
+    "cursor",
+    "hooks",
+    "husky",
+    "code-quality",
+    "linting",
+    "automation"
+  ],
+  "author": "Hugsy Contributors",
+  "license": "MIT",
+  "homepage": "https://github.com/HugsyLab/hugsy",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HugsyLab/hugsy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/HugsyLab/hugsy/issues"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.1",
+    "@types/node": "^20.19.11",
+    "@typescript-eslint/eslint-plugin": "^8.41.0",
+    "@typescript-eslint/parser": "^8.41.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "@vitest/ui": "^1.6.0",
+    "eslint": "^9.34.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.2.4",
+    "tsx": "^4.20.5",
+    "turbo": "^1.11.3",
+    "typescript": "^5.3.3",
+    "vitest": "^1.6.0"
+  },
+  "packageManager": "pnpm@8.14.0",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "ora": "^8.0.1"
+  }
+}

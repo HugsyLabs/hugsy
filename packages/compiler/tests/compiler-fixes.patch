@@ -1,0 +1,24 @@
+// Fixes needed for compiler.test.ts
+
+// 1. Add optional chaining for all permissions, env, and hooks access
+// Replace: result.permissions.xxx
+// With: result.permissions?.xxx
+
+// 2. Fix hooks type issues - add 'type: command' field
+// Replace: { command: 'xxx' }
+// With: { type: 'command', command: 'xxx' }
+
+// 3. Fix statusLine type issues
+// Replace: { showPaths: true, showTimestamp: false }
+// With: { type: 'static', text: 'some text' } or { type: 'command', command: 'some command' }
+
+// 4. Fix env type issues - all values must be strings
+// Replace: { PORT: 3000, ENABLED: true }
+// With: { PORT: '3000', ENABLED: 'true' }
+
+// 5. Fix hooks array access issues
+// Since hooks can be HookConfig | HookConfig[], need to check if array
+// Use: Array.isArray(result.hooks?.['on-tool-use']) before accessing with index
+
+// 6. Fix blocking property - removed from type definition
+// Remove: blocking: true/false from hook configs

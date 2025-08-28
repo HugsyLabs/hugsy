@@ -1,0 +1,40 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Hugsy CLI Integration Tests > Configuration Initialization > should init with recommended preset > init-recommended-config 1`] = `
+{
+  "env": {
+    "NODE_ENV": "development",
+  },
+  "extends": "@hugsy/recommended",
+}
+`;
+
+exports[`Hugsy CLI Integration Tests > Installation Process > should install successfully > install-compiled-settings 1`] = `
+{
+  "env": {
+    "NODE_ENV": "development",
+  },
+  "hooks": {},
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Write(**/test/**)",
+      "Bash(git *)",
+      "Bash(npm test)",
+    ],
+    "ask": [
+      "Bash(sudo *)",
+      "Bash(npm publish)",
+      "Write(**/production/**)",
+    ],
+    "deny": [
+      "Write(*:*password=*)",
+      "Write(*:*secret=*)",
+      "Write(*:*api_key=*)",
+      "Bash(rm -rf /*)",
+      "Bash(:(){ :|:& };:)",
+      "Read(**/.env)",
+    ],
+  },
+}
+`;

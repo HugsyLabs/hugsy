@@ -1,0 +1,167 @@
+{
+  "name": "@hugsy/showcase",
+  "description": "Showcase preset with comprehensive settings for demonstration",
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Read(**/public/**)",
+      "Read(**/docs/**)",
+      "Write(**/test/**)",
+      "Write(**/tmp/**)",
+      "Write(**/*.test.{ts,js})",
+      "Write(**/sandbox/**)",
+      "Bash(git *)",
+      "Bash(npm test)",
+      "Bash(npm run *)",
+      "Bash(pnpm *)",
+      "Bash(yarn *)",
+      "Bash(node *)",
+      "Bash(npx *)",
+      "Bash(echo *)",
+      "Bash(cat **/package.json)",
+      "LS(**)",
+      "Grep(**)",
+      "Glob(**)"
+    ],
+    "deny": [
+      "Write(**/node_modules/**)",
+      "Write(**/.git/**)",
+      "Write(**/dist/**)",
+      "Write(**/build/**)",
+      "Write(**/prod/**)",
+      "Write(**/production/**)",
+      "Write(**/.env*)",
+      "Write(**/secrets/**)",
+      "Write(**/credentials/**)",
+      "Read(**/*password*)",
+      "Read(**/*secret*)",
+      "Read(**/*key*)",
+      "Read(**/.env*)",
+      "Bash(rm -rf *)",
+      "Bash(sudo *)",
+      "Bash(chmod 777 *)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | bash)",
+      "Bash(eval *)"
+    ],
+    "ask": [
+      "Write(**/*.config.*)",
+      "Write(**/package.json)",
+      "Write(**/tsconfig.json)",
+      "Write(**/.github/**)",
+      "Write(**/CI/**)",
+      "Bash(npm publish)",
+      "Bash(npm install *)",
+      "Bash(docker *)",
+      "Edit(**/migration/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write(**/*.ts)",
+        "command": "echo '📝 TypeScript file will be modified'"
+      },
+      {
+        "matcher": "Write(**/*.js)",
+        "command": "echo '📝 JavaScript file will be modified'"
+      },
+      {
+        "matcher": "Bash(git *)",
+        "command": "echo '🔀 Git operation starting...'"
+      },
+      {
+        "matcher": "Read(**/config/**)",
+        "command": "echo '⚙️ Reading configuration files'"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write(**)",
+        "command": "echo '✅ File write completed'"
+      },
+      {
+        "matcher": "Bash(npm test)",
+        "command": "echo '✅ Test run completed'"
+      },
+      {
+        "matcher": "Bash(npm run build)",
+        "command": "echo '✅ Build completed'"
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "*error*",
+        "command": "echo '❌ Error notification triggered'"
+      },
+      {
+        "matcher": "*warning*",
+        "command": "echo '⚠️ Warning notification'"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "*fix*",
+        "command": "echo '🔧 Fix request received'"
+      },
+      {
+        "matcher": "*debug*",
+        "command": "echo '🐛 Debug mode requested'"
+      },
+      {
+        "matcher": "*test*",
+        "command": "echo '🧪 Test request detected'"
+      }
+    ],
+    "Stop": [
+      {
+        "command": "echo '🛑 Operation stopped by user'"
+      }
+    ],
+    "SubagentStop": [
+      {
+        "command": "echo '🤖 Subagent stopped'"
+      }
+    ],
+    "SessionEnd": [
+      {
+        "command": "echo '👋 Session ending - saving work...'"
+      }
+    ],
+    "PreCompact": [
+      {
+        "command": "echo '♻️ Compacting conversation history'"
+      }
+    ],
+    "SessionStart": [
+      {
+        "command": "echo '🚀 Welcome to Hugsy-powered development environment!'"
+      },
+      {
+        "command": "echo '📊 Loading project configuration...'"
+      }
+    ]
+  },
+  "env": {
+    "NODE_ENV": "development",
+    "DEBUG": "true",
+    "LOG_LEVEL": "info",
+    "CI": "false",
+    "HUGSY_MODE": "showcase",
+    "ENABLE_METRICS": "true",
+    "ENABLE_TELEMETRY": "false",
+    "MAX_RETRIES": "3",
+    "TIMEOUT": "30000",
+    "WORKSPACE": "/workspace",
+    "COLOR_OUTPUT": "true",
+    "VERBOSE": "false"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "echo '🚀 Hugsy' && git branch --show-current 2>/dev/null || echo 'no-git'"
+  },
+  "model": "claude-3-5-sonnet",
+  "includeCoAuthoredBy": true,
+  "cleanupPeriodDays": 14,
+  "enableAllProjectMcpServers": false
+}

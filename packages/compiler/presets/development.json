@@ -1,0 +1,33 @@
+{
+  "name": "@hugsy/development",
+  "description": "Standard development environment permissions",
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Write(**/*.ts)",
+      "Write(**/*.js)",
+      "Write(**/*.json)",
+      "Write(**/*.md)",
+      "Write(**/test/**)",
+      "Bash(git *)",
+      "Bash(npm test)",
+      "Bash(npm run *)",
+      "Bash(pnpm *)"
+    ],
+    "deny": [
+      "Write(**/node_modules/**)",
+      "Write(**/.git/**)",
+      "Write(**/dist/**)",
+      "Bash(rm -rf /)",
+      "Bash(sudo *)"
+    ],
+    "ask": [
+      "Bash(npm publish)",
+      "Write(**/.github/**)",
+      "Write(**/package.json)"
+    ]
+  },
+  "env": {
+    "NODE_ENV": "development"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "extends": "@hugsy/showcase",
+  "plugins": [
+    "./plugins/showcase-plugin.js",
+    "./plugins/logger-plugin.js"
+  ],
+  "env": {
+    "PROJECT": "awesome-app",
+    "VERSION": "2.0.0"
+  },
+  "commands": {
+    "presets": ["@hugsy/slash-commands-common"],
+    "files": ["./project-commands/*.md"]
+  }
+}
