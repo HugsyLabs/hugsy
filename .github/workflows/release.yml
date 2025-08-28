@@ -43,6 +43,7 @@ jobs:
           publish: pnpm publish:ci
           commit: 'chore: release packages'
           title: 'chore: release packages'
+          version: pnpm changeset version && pnpm install --lockfile-only
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
