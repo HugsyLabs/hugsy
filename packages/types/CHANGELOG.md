@@ -1,5 +1,24 @@
 # @hugsylabs/hugsy-types
 
+## 0.0.3
+
+### Patch Changes
+
+- 6c01877: feat: Add TypeScript type exports and async plugin support
+  - Export Plugin and HugsyPlugin types from compiler
+  - Support async transform functions in plugins
+  - Remove statusLine config and backup file generation
+
+- 00ba9d5: docs: Update README comparison table
+  - Update config size comparison from "200+ lines" to "10 lines" for better clarity
+  - Improve documentation accuracy
+
+- e96a2f8: fix: update version script to include lockfile-only install
+  - Fix changeset workflow by updating package.json version script
+  - Ensures pnpm install --lockfile-only runs after version bumping
+
+- dad9ae2: readme update
+
 ## 0.0.2
 
 ### Patch Changes
