@@ -1536,4 +1536,232 @@ export default {
       expect(result.env).toEqual({ INITIAL: 'value' });
     });
   });
+
+  describe('Bug Fixes', () => {
+    describe('Inheritance values preservation', () => {
+      it('should preserve inherited values from presets', async () => {
+        const baseConfig = {
+          includeCoAuthoredBy: true,
+          cleanupPeriodDays: 7,
+          env: { BASE: 'value' }
+        };
+        writeFileSync(join(TEST_DIR, 'base.json'), JSON.stringify(baseConfig));
+
+        const config = {
+          extends: './base.json',
+          env: { TEST: 'value' }
+        };
+
+        const result = await compiler.compile(config);
+        
+        expect(result.includeCoAuthoredBy).toBe(true);
+        expect(result.cleanupPeriodDays).toBe(7);
+        expect(result.env.BASE).toBe('value');
+        expect(result.env.TEST).toBe('value');
+      });
+
+      it('should allow child config to override inherited values', async () => {
+        const baseConfig = {
+          includeCoAuthoredBy: true,
+          cleanupPeriodDays: 7
+        };
+        writeFileSync(join(TEST_DIR, 'base.json'), JSON.stringify(baseConfig));
+
+        const config = {
+          extends: './base.json',
+          includeCoAuthoredBy: false,
+          cleanupPeriodDays: 14
+        };
+
+        const result = await compiler.compile(config);
+        
+        expect(result.includeCoAuthoredBy).toBe(false);
+        expect(result.cleanupPeriodDays).toBe(14);
+      });
+    });
+
+    describe('Plugin validate function', () => {
+      it('should call plugin validate function and show warnings', async () => {
+        // Create new compiler without throwOnError
+        const testCompiler = new Compiler({ root: TEST_DIR, verbose: false });
+        
+        const mockPlugin = {
+          name: 'test-validate',
+          validate: (_config: HugsyConfig) => ['Test error 1', 'Test error 2']
+        };
+
+        const pluginsMap = (testCompiler as { plugins: Map<string, Plugin> }).plugins;
+        pluginsMap.set('test-validate', mockPlugin);
+
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        
+        await testCompiler.compile({ env: { TEST: 'value' } });
+        
+        expect(consoleSpy).toHaveBeenCalledWith('⚠️  Configuration validation warnings:');
+        expect(consoleSpy).toHaveBeenCalledWith('  - [test-validate] Test error 1');
+        expect(consoleSpy).toHaveBeenCalledWith('  - [test-validate] Test error 2');
+        
+        consoleSpy.mockRestore();
+      });
+
+      it('should throw when validation fails with throwOnError', async () => {
+        const strictCompiler = new Compiler({ root: TEST_DIR, throwOnError: true });
+        
+        const mockPlugin = {
+          name: 'strict-validate',
+          validate: () => ['Critical error']
+        };
+        
+        const pluginsMap = (strictCompiler as { plugins: Map<string, Plugin> }).plugins;
+        pluginsMap.set('strict-validate', mockPlugin);
+        
+        await expect(strictCompiler.compile({})).rejects.toThrow('Configuration validation failed');
+      });
+    });
+
+    describe('Env value validation', () => {
+      it('should reject nested objects in env values', async () => {
+        const strictCompiler = new Compiler({ root: TEST_DIR, throwOnError: true });
+        
+        const config = {
+          env: {
+            STRING_VALUE: 'valid',
+            NESTED_OBJECT: { level1: { level2: 'value' } } as unknown as string
+          }
+        };
+
+        await expect(strictCompiler.compile(config)).rejects.toThrow('Invalid env value for \'NESTED_OBJECT\'');
+      });
+
+      it('should accept valid string values in env', async () => {
+        const config = {
+          env: {
+            STRING1: 'value1',
+            STRING2: 'value2',
+            JSON_STRING: JSON.stringify({ nested: 'data' })
+          }
+        };
+
+        const result = await compiler.compile(config);
+        
+        expect(result.env.STRING1).toBe('value1');
+        expect(result.env.STRING2).toBe('value2');
+        expect(result.env.JSON_STRING).toBe('{"nested":"data"}');
+      });
+    });
+
+    describe('Uppercase field normalization', () => {
+      it('should normalize uppercase ENV to env', async () => {
+        const config = {
+          ENV: {
+            TEST: 'value',
+            ANOTHER: 'test'
+          }
+        } as HugsyConfig;
+
+        const result = await compiler.compile(config);
+        
+        expect(result.env.TEST).toBe('value');
+        expect(result.env.ANOTHER).toBe('test');
+      });
+
+      it('should normalize Permissions and sub-fields', async () => {
+        const config = {
+          Permissions: {
+            Allow: ['Read(**/*.ts)', 'Write(src/**)'],
+            Ask: ['Bash(*)'],
+            Deny: ['Delete(*)']
+          }
+        } as HugsyConfig;
+
+        const result = await compiler.compile(config);
+        
+        expect(result.permissions.allow).toContain('Read(**/*.ts)');
+        expect(result.permissions.allow).toContain('Write(src/**)');
+        expect(result.permissions.ask).toContain('Bash(*)');
+        expect(result.permissions.deny).toContain('Delete(*)');
+      });
+
+      it('should handle mixed case fields correctly', async () => {
+        const config = {
+          ENV: { TEST1: 'value1' },
+          env: { TEST2: 'value2' },
+          includeCoAuthoredBy: true,
+          IncludeCoAuthoredBy: false,
+          CleanupPeriodDays: 10
+        } as HugsyConfig;
+
+        const result = await compiler.compile(config);
+        
+        expect(result.env.TEST1).toBe('value1');
+        expect(result.env.TEST2).toBe('value2');
+        expect(result.includeCoAuthoredBy).toBe(false);
+        expect(result.cleanupPeriodDays).toBe(10);
+      });
+
+      it('should normalize StatusLine field', async () => {
+        const config = {
+          StatusLine: {
+            type: 'static',
+            text: 'Test Status'
+          }
+        } as HugsyConfig;
+
+        const result = await compiler.compile(config);
+        
+        expect(result.statusLine).toEqual({
+          type: 'static',
+          text: 'Test Status'
+        });
+      });
+    });
+
+    describe('Integration test with all fixes', () => {
+      it('should handle complex config with all fixed issues', async () => {
+        const baseConfig = {
+          includeCoAuthoredBy: true,
+          cleanupPeriodDays: 7,
+          ENV: { BASE_VAR: 'base_value' }
+        };
+        writeFileSync(join(TEST_DIR, 'base-complex.json'), JSON.stringify(baseConfig));
+
+        const mockPlugin = {
+          name: 'integration-plugin',
+          env: { PLUGIN_VAR: 'plugin_value' },
+          validate: (config: HugsyConfig) => {
+            if (!config.env?.REQUIRED_VAR) {
+              return ['Missing REQUIRED_VAR in env'];
+            }
+            return [];
+          }
+        };
+        const pluginsMap = (compiler as { plugins: Map<string, Plugin> }).plugins;
+        pluginsMap.set('integration-plugin', mockPlugin);
+
+        const config = {
+          extends: './base-complex.json',
+          Permissions: {
+            Allow: ['Read(**)'],
+            Deny: ['Delete(*)']
+          },
+          env: {
+            REQUIRED_VAR: 'required_value',
+            USER_VAR: 'user_value'
+          }
+        } as HugsyConfig;
+
+        const result = await compiler.compile(config);
+        
+        expect(result.includeCoAuthoredBy).toBe(true);
+        expect(result.cleanupPeriodDays).toBe(7);
+        expect(result.permissions.allow).toContain('Read(**)');
+        expect(result.permissions.deny).toContain('Delete(*)');
+        expect(result.env.BASE_VAR).toBe('base_value');
+        expect(result.env.PLUGIN_VAR).toBe('plugin_value');
+        expect(result.env.REQUIRED_VAR).toBe('required_value');
+        expect(result.env.USER_VAR).toBe('user_value');
+      });
+    });
+  });
 });
