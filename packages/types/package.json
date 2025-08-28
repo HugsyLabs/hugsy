@@ -1,6 +1,6 @@
 {
   "name": "@hugsylabs/hugsy-types",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Type definitions for Hugsy configuration management system",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
