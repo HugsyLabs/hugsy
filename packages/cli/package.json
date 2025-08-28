@@ -1,14 +1,13 @@
 {
   "name": "@hugsylabs/hugsy",
   "version": "0.0.1",
-  "description": "CLI for managing Claude Code configurations with templates and plugins",
+  "description": "🐧 Hugsy - Configuration management for Claude Code. Transform complex settings into simple, shareable team standards.",
   "type": "module",
   "bin": {
     "hugsy": "./dist/index.js"
   },
   "files": [
-    "dist",
-    "README.md"
+    "dist"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
