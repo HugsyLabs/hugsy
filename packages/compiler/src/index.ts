@@ -337,8 +337,8 @@ export class Compiler {
       throw error;
     }
 
-    // Default: log error but continue
-    console.error(message);
+    // Default: log error but continue with a clearer prefix
+    console.error(`⚠️  ${message}`);
   }
 
   /**
@@ -370,7 +370,7 @@ export class Compiler {
    */
   private log(message: string): void {
     if (this.options.verbose) {
-      console.log(`[Hugsy Compiler] ${message}`);
+      console.log(`ℹ️  [Hugsy Compiler] ${message}`);
     }
   }
 
