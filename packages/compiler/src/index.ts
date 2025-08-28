@@ -29,7 +29,7 @@ export interface CompilerOptions {
 export class CompilerError extends Error {
   constructor(
     message: string,
-    public details?: Record<string, string | number | boolean>
+    public details?: Record<string, string | number | boolean | string[]>
   ) {
     super(message);
     this.name = 'CompilerError';
@@ -60,9 +60,22 @@ export class Compiler {
    */
   async compile(config: HugsyConfig): Promise<ClaudeSettings> {
     this.log('Starting compilation...');
+    
+    // Check if config is an array (invalid)
+    if (Array.isArray(config)) {
+      throw new CompilerError('Configuration must be an object, not an array');
+    }
+    
+    // Check if config is an object
+    if (typeof config !== 'object' || config === null) {
+      throw new CompilerError('Configuration must be an object');
+    }
 
     // Sanitize configuration first (remove zero-width and control characters)
     config = this.sanitizeConfigValues(config);
+    
+    // Normalize field names (handle uppercase variants)
+    config = this.normalizeConfig(config);
 
     // Validate configuration
     this.validateConfig(config);
@@ -76,6 +89,26 @@ export class Compiler {
 
     // Load plugins and apply transformations
     let transformedConfig = { ...config };
+    
+    // Preserve inherited values from presets
+    let inheritedValues: Partial<HugsyConfig> = {};
+    for (const preset of this.presets.values()) {
+      if (preset.includeCoAuthoredBy !== undefined && inheritedValues.includeCoAuthoredBy === undefined) {
+        inheritedValues.includeCoAuthoredBy = preset.includeCoAuthoredBy;
+      }
+      if (preset.cleanupPeriodDays !== undefined && inheritedValues.cleanupPeriodDays === undefined) {
+        inheritedValues.cleanupPeriodDays = preset.cleanupPeriodDays;
+      }
+    }
+    
+    // Merge inherited values into config if not already set
+    if (transformedConfig.includeCoAuthoredBy === undefined && inheritedValues.includeCoAuthoredBy !== undefined) {
+      transformedConfig.includeCoAuthoredBy = inheritedValues.includeCoAuthoredBy;
+    }
+    if (transformedConfig.cleanupPeriodDays === undefined && inheritedValues.cleanupPeriodDays !== undefined) {
+      transformedConfig.cleanupPeriodDays = inheritedValues.cleanupPeriodDays;
+    }
+    
     if (config.plugins) {
       this.log(`Loading ${config.plugins.length} plugin(s): ${config.plugins.join(', ')}`);
       await this.loadPlugins(config.plugins);
@@ -184,6 +217,36 @@ export class Compiler {
       settings.disabledMcpjsonServers = transformedConfig.disabledMcpjsonServers;
     }
 
+    // Run plugin validations on the final configuration
+    const validationErrors: string[] = [];
+    for (const [pluginName, plugin] of this.plugins) {
+      if (plugin.validate && typeof plugin.validate === 'function') {
+        try {
+          const errors = plugin.validate(transformedConfig);
+          if (Array.isArray(errors) && errors.length > 0) {
+            errors.forEach(error => {
+              validationErrors.push(`[${pluginName}] ${error}`);
+            });
+          }
+        } catch (error) {
+          this.log(`⚠️  Plugin '${pluginName}' validate function threw error: ${String(error)}`);
+        }
+      }
+    }
+    
+    // Handle validation errors
+    if (validationErrors.length > 0) {
+      if (this.options.throwOnError) {
+        throw new CompilerError(
+          'Configuration validation failed',
+          { errors: validationErrors }
+        );
+      } else {
+        console.warn('⚠️  Configuration validation warnings:');
+        validationErrors.forEach(error => console.warn(`  - ${error}`));
+      }
+    }
+
     // Log compilation summary
     this.logCompilationSummary(settings);
 
@@ -194,18 +257,6 @@ export class Compiler {
    * Validate configuration structure
    */
   private validateConfig(config: HugsyConfig): void {
-    // Check if config is an array (invalid)
-    if (Array.isArray(config)) {
-      this.handleError('Configuration must be an object, not an array');
-      return;
-    }
-    
-    // Check if config is an object
-    if (typeof config !== 'object' || config === null) {
-      this.handleError('Configuration must be an object');
-      return;
-    }
-    
     // Check for unknown/invalid properties
     const validKeys = [
       'extends', 'plugins', 'env', 'permissions', 'hooks', 'commands',
@@ -282,6 +333,21 @@ export class Compiler {
           suggestion: 'cleanupPeriodDays should be a number representing days (e.g., 7 for one week)'
         }
       );
+    }
+    
+    // Validate env values are strings
+    if (config.env) {
+      for (const [key, value] of Object.entries(config.env)) {
+        if (typeof value !== 'string') {
+          this.handleError(
+            `Invalid env value for '${key}': expected string, got ${typeof value}`,
+            {
+              value: JSON.stringify(value),
+              suggestion: 'Environment variables must be strings. If you need to pass complex data, use JSON.stringify()'
+            }
+          );
+        }
+      }
     }
   }
 
@@ -842,7 +908,8 @@ export class Compiler {
     for (const preset of this.presets.values()) {
       if (preset.env) {
         for (const [key, value] of Object.entries(preset.env)) {
-          env[key] = String(value);
+          // Validation will catch non-string values
+          env[key] = value;
         }
         this.log(`Applied env from preset: ${JSON.stringify(preset.env)}`);
       }
@@ -852,7 +919,8 @@ export class Compiler {
     for (const plugin of this.plugins.values()) {
       if (plugin.env) {
         for (const [key, value] of Object.entries(plugin.env)) {
-          env[key] = String(value);
+          // Validation will catch non-string values
+          env[key] = value;
         }
         this.log(`Applied env from plugin: ${JSON.stringify(plugin.env)}`);
       }
@@ -861,7 +929,8 @@ export class Compiler {
     // 3. Apply user config (highest priority)
     if (config.env) {
       for (const [key, value] of Object.entries(config.env)) {
-        env[key] = String(value);
+        // Validation will catch non-string values
+        env[key] = value;
       }
       this.log(`Applied env from user config: ${JSON.stringify(config.env)}`);
     }
@@ -926,8 +995,11 @@ export class Compiler {
         }
       }
 
+      // Normalize preset config fields (handle uppercase variants)
+      const normalizedPreset = this.normalizeConfig(preset);
+      
       // Then add this preset (so it overrides its parents)
-      this.presets.set(presetName, preset);
+      this.presets.set(presetName, normalizedPreset as Preset);
       this.log(`Successfully loaded preset: ${presetName}`);
     } else {
       this.log(`Failed to load preset: ${presetName}`);
@@ -1199,6 +1271,75 @@ export class Compiler {
         }
       }
     }
+  }
+
+  /**
+   * Normalize config field names (handle uppercase variants)
+   */
+  private normalizeConfig(config: HugsyConfig | Preset): HugsyConfig {
+    const normalized: Partial<HugsyConfig> = {};
+    
+    for (const [key, value] of Object.entries(config)) {
+      const lowerKey = key.toLowerCase();
+      
+      // Map common uppercase variants to lowercase
+      switch (lowerKey) {
+        case 'env':
+          // Merge with existing env if present
+          if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            normalized.env = { ...(normalized.env ?? {}), ...(value as Record<string, string>) };
+          }
+          break;
+        case 'permissions':
+          // Also normalize permission sub-fields
+          if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            const permValue = value as Record<string, unknown>;
+            const normalizedPerms: Record<string, string[] | undefined> = {};
+            for (const permKey in permValue) {
+              const permLower = permKey.toLowerCase();
+              if (permLower === 'allow' || permLower === 'ask' || permLower === 'deny') {
+                normalizedPerms[permLower] = permValue[permKey] as string[];
+              } else {
+                normalizedPerms[permKey] = permValue[permKey] as string[] | undefined;
+              }
+            }
+            normalized.permissions = normalizedPerms;
+          }
+          break;
+        case 'hooks':
+          normalized.hooks = value as HookSettings;
+          break;
+        case 'commands':
+          normalized.commands = value as SlashCommandsConfig | string[];
+          break;
+        case 'extends':
+          normalized.extends = value as string | string[];
+          break;
+        case 'plugins':
+          normalized.plugins = value as string[];
+          break;
+        case 'model':
+          normalized.model = value as string;
+          break;
+        case 'statusline':
+          normalized.statusLine = value as StatusLineConfig;
+          break;
+        case 'includecoauthoredby':
+          normalized.includeCoAuthoredBy = value as boolean;
+          break;
+        case 'cleanupperioddays':
+          normalized.cleanupPeriodDays = value as number;
+          break;
+        case 'apikeyhelper':
+          normalized.apiKeyHelper = value as string;
+          break;
+        default:
+          // Keep original key if not a known uppercase variant
+          (normalized as Record<string, unknown>)[key] = value;
+      }
+    }
+    
+    return normalized as HugsyConfig;
   }
 
   /**
