@@ -104,7 +104,24 @@ export class Compiler {
           const pluginName = plugin.name ?? pluginPath;
           
           try {
-            transformedConfig = plugin.transform(transformedConfig);
+            // Support both sync and async transform functions
+            const result = plugin.transform(transformedConfig);
+            
+            // Check if result is a Promise without using any
+            if (result && typeof result === 'object' && 'then' in result && typeof result.then === 'function') {
+              const awaitedResult = await result;
+              // Check if the result is valid
+              if (awaitedResult === undefined || awaitedResult === null) {
+                throw new Error('Plugin transform returned undefined or null');
+              }
+              transformedConfig = awaitedResult;
+            } else {
+              // Check if the result is valid
+              if (result === undefined || result === null) {
+                throw new Error('Plugin transform returned undefined or null');
+              }
+              transformedConfig = result as HugsyConfig;
+            }
             this.log(`[${pluginIndex}/${this.plugins.size}] Applying plugin: ${pluginName}`);
 
             // Log what changed
@@ -1281,3 +1298,6 @@ export type {
   SlashCommand,
   SlashCommandsConfig,
 } from '@hugsylabs/hugsy-types';
+
+// Re-export Plugin type explicitly for plugin developers
+export type { Plugin as HugsyPlugin } from '@hugsylabs/hugsy-types';

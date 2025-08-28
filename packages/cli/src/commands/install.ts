@@ -3,9 +3,8 @@
  */
 
 import { Command } from 'commander';
-import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
-import chalk from 'chalk';
 import { logger } from '../utils/logger.js';
 import { ProjectConfig } from '../utils/project-config.js';
 import { Compiler } from '@hugsylabs/hugsy-compiler';
@@ -55,16 +54,6 @@ export function installCommand(): Command {
             logger.error('Project already has .claude/settings.json');
             logger.info('Use --force to overwrite');
             return;
-          }
-
-          // Backup existing settings
-          if (options.backup !== false) {
-            const backupPath = join(claudeDir, 'settings.json.backup');
-            const content = readFileSync(settingsPath, 'utf-8');
-            writeFileSync(backupPath, content);
-            logger.info(
-              `Backed up existing settings to ${chalk.cyan('.claude/settings.json.backup')}`
-            );
           }
         }
 

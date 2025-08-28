@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import * as yaml from 'yaml';
 import { Compiler } from '../src/index';
-import type { HugsyConfig } from '../src/index';
+import type { HugsyConfig, Plugin, HugsyPlugin } from '../src/index';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1336,6 +1336,204 @@ export default {
       expect(result.includeCoAuthoredBy).toBeUndefined();
       expect(result.cleanupPeriodDays).toBeUndefined();
       expect(result.env).toEqual({});
+    });
+  });
+
+  describe('Type Exports', () => {
+    it('should export Plugin and HugsyPlugin types', () => {
+      // This test verifies that the types are exported correctly
+      // The actual type checking happens at compile time
+      const testPlugin: Plugin = {
+        name: 'test-plugin',
+        transform: (config: HugsyConfig) => config
+      };
+      
+      const hugsyPlugin: HugsyPlugin = {
+        name: 'hugsy-plugin',
+        version: '1.0.0',
+        transform: (config: HugsyConfig) => ({
+          ...config,
+          env: { ...config.env, TEST: 'value' }
+        })
+      };
+      
+      expect(testPlugin).toBeDefined();
+      expect(hugsyPlugin).toBeDefined();
+      expect(testPlugin.name).toBe('test-plugin');
+      expect(hugsyPlugin.name).toBe('hugsy-plugin');
+    });
+  });
+
+  describe('Async Plugin Support', () => {
+    it('should support async transform functions', async () => {
+      const asyncPlugin = `
+export default {
+  name: 'async-plugin',
+  async transform(config) {
+    // Simulate async operation
+    await new Promise(resolve => setTimeout(resolve, 10));
+    return {
+      ...config,
+      env: {
+        ...config.env,
+        ASYNC_LOADED: 'true'
+      }
+    };
+  }
+};
+`;
+
+      const pluginPath = join(TEST_DIR, 'async-plugin.js');
+      writeFileSync(pluginPath, asyncPlugin);
+
+      const config: HugsyConfig = {
+        plugins: ['./async-plugin.js']
+      };
+
+      const result = await compiler.compile(config);
+      expect(result.env).toHaveProperty('ASYNC_LOADED', 'true');
+    });
+
+    it('should handle async plugin errors gracefully', async () => {
+      const errorPlugin = `
+export default {
+  name: 'error-plugin',
+  async transform(config) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+    throw new Error('Async plugin error');
+  }
+};
+`;
+
+      const pluginPath = join(TEST_DIR, 'error-plugin.js');
+      writeFileSync(pluginPath, errorPlugin);
+
+      const config: HugsyConfig = {
+        plugins: ['./error-plugin.js'],
+        env: { INITIAL: 'value' }
+      };
+
+      // Should continue with unchanged config when plugin fails
+      const result = await compiler.compile(config);
+      expect(result.env).toEqual({ INITIAL: 'value' });
+    });
+
+    it('should support mixing sync and async plugins', async () => {
+      const syncPlugin = `
+export default {
+  name: 'sync-plugin',
+  transform(config) {
+    return {
+      ...config,
+      env: {
+        ...config.env,
+        SYNC: 'loaded'
+      }
+    };
+  }
+};
+`;
+
+      const asyncPlugin = `
+export default {
+  name: 'async-plugin-2',
+  async transform(config) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+    return {
+      ...config,
+      env: {
+        ...config.env,
+        ASYNC: 'loaded'
+      }
+    };
+  }
+};
+`;
+
+      writeFileSync(join(TEST_DIR, 'sync-plugin.js'), syncPlugin);
+      writeFileSync(join(TEST_DIR, 'async-plugin-2.js'), asyncPlugin);
+
+      const config: HugsyConfig = {
+        plugins: ['./sync-plugin.js', './async-plugin-2.js']
+      };
+
+      const result = await compiler.compile(config);
+      expect(result.env).toEqual({
+        SYNC: 'loaded',
+        ASYNC: 'loaded'
+      });
+    });
+
+    it('should preserve plugin execution order with async transforms', async () => {
+      const plugin1 = `
+export default {
+  name: 'plugin-1',
+  async transform(config) {
+    await new Promise(resolve => setTimeout(resolve, 20));
+    return {
+      ...config,
+      env: {
+        ...config.env,
+        ORDER: '1',
+        PLUGIN_1: 'loaded'
+      }
+    };
+  }
+};
+`;
+
+      const plugin2 = `
+export default {
+  name: 'plugin-2',
+  async transform(config) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+    return {
+      ...config,
+      env: {
+        ...config.env,
+        ORDER: config.env?.ORDER ? config.env.ORDER + ',2' : '2',
+        PLUGIN_2: 'loaded'
+      }
+    };
+  }
+};
+`;
+
+      writeFileSync(join(TEST_DIR, 'plugin-1.js'), plugin1);
+      writeFileSync(join(TEST_DIR, 'plugin-2.js'), plugin2);
+
+      const config: HugsyConfig = {
+        plugins: ['./plugin-1.js', './plugin-2.js']
+      };
+
+      const result = await compiler.compile(config);
+      expect(result.env?.ORDER).toBe('1,2'); // Should be executed in order
+      expect(result.env?.PLUGIN_1).toBe('loaded');
+      expect(result.env?.PLUGIN_2).toBe('loaded');
+    });
+
+    it('should handle promises that resolve to undefined', async () => {
+      const undefinedPlugin = `
+export default {
+  name: 'undefined-plugin',
+  async transform(config) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+    // Accidentally returning undefined
+    return;
+  }
+};
+`;
+
+      writeFileSync(join(TEST_DIR, 'undefined-plugin.js'), undefinedPlugin);
+
+      const config: HugsyConfig = {
+        plugins: ['./undefined-plugin.js'],
+        env: { INITIAL: 'value' }
+      };
+
+      // Should handle gracefully and continue with unchanged config when plugin returns undefined
+      const result = await compiler.compile(config);
+      expect(result.env).toEqual({ INITIAL: 'value' });
     });
   });
 });
