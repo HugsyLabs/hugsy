@@ -31,9 +31,5 @@
   "env": {
     "NODE_ENV": "development",
     "PROJECT": "hugsy"
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "git branch --show-current"
   }
 }
