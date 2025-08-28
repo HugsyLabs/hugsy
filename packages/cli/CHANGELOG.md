@@ -1,5 +1,13 @@
 # @hugsylabs/hugsy
 
+## 0.0.4
+
+### Patch Changes
+
+- Updated dependencies [2752d8b]
+  - @hugsylabs/hugsy-compiler@0.1.1
+  - @hugsylabs/hugsy-types@0.0.4
+
 ## 0.0.3
 
 ### Patch Changes
