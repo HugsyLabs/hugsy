@@ -18,7 +18,8 @@
     "changeset": "changeset",
     "version": "changeset version && pnpm install --lockfile-only",
     "release": "turbo build && changeset publish",
-    "publish:ci": "changeset publish"
+    "publish:ci": "changeset publish",
+    "version:packages": "changeset version && pnpm install --lockfile-only"
   },
   "keywords": [
     "ai",
