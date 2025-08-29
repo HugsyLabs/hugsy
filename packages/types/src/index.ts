@@ -118,6 +118,7 @@ export interface Plugin {
   env?: Record<string, string>;
   commands?: Record<string, string | SlashCommand>; // Plugin can provide commands
   transform?: (config: HugsyConfig) => HugsyConfig | Promise<HugsyConfig>;
+  validate?: (config: HugsyConfig) => string[]; // Validate the final config and return errors
 }
 
 export interface Preset extends Plugin {
