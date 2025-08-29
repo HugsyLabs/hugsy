@@ -1,5 +1,20 @@
 # @hugsylabs/hugsy
 
+## 0.0.6
+
+### Patch Changes
+
+- 2ab2107: fix: Fix multiple compiler bugs
+  - Fix inherited values (includeCoAuthoredBy, cleanupPeriodDays) becoming null
+  - Implement plugin validate function calls with error handling
+  - Add env value type validation to reject non-string values
+  - Normalize uppercase field names (ENV→env, Permissions→permissions, etc)
+  - Add comprehensive tests for all bug fixes
+
+- Updated dependencies [2ab2107]
+  - @hugsylabs/hugsy-compiler@0.1.3
+  - @hugsylabs/hugsy-types@0.0.6
+
 ## 0.0.5
 
 ### Patch Changes
