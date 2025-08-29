@@ -1,5 +1,18 @@
 # @hugsylabs/hugsy
 
+## 0.0.5
+
+### Patch Changes
+
+- ea3292e: fix: Fix changeset release workflow to automatically update pnpm-lock.yaml
+  - Add version:packages script that updates lockfile after version bumps
+  - Ensure Version Packages PR includes updated lockfile
+  - This fixes CI failures on changeset-created PRs
+
+- Updated dependencies [ea3292e]
+  - @hugsylabs/hugsy-compiler@0.1.2
+  - @hugsylabs/hugsy-types@0.0.5
+
 ## 0.0.4
 
 ### Patch Changes
