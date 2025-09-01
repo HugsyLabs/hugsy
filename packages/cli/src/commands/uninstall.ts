@@ -1,5 +1,5 @@
 /**
- * Uninstall command - Remove Hugsy from current project
+ * Uninstall command - Remove Hugsy or packages from current project
  */
 
 import { Command } from 'commander';
@@ -7,15 +7,85 @@ import { existsSync, readFileSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
 import prompts from 'prompts';
 import { logger } from '../utils/logger.js';
+import { ProjectConfig } from '../utils/project-config.js';
+import { Compiler } from '@hugsylabs/hugsy-compiler';
+import { removeFromHugsyConfig } from '../utils/package-manager.js';
 
 export function uninstallCommand(): Command {
   const command = new Command('uninstall');
 
   command
-    .description('Remove Hugsy configuration from current project')
-    .option('--keep-config', 'Keep .hugsyrc.json file')
+    .alias('remove')
+    .description('Remove Hugsy or packages from current project')
+    .argument('[packages...]', 'Packages to uninstall (if not provided, uninstalls Hugsy entirely)')
+    .option('--keep-config', 'Keep .hugsyrc.json file (for full uninstall)')
     .option('-y, --yes', 'Skip confirmation')
-    .action(async (options) => {
+    .action(async (packages, options) => {
+      // If packages are provided, uninstall them
+      if (packages && packages.length > 0) {
+        logger.section('Uninstalling Packages');
+        
+        try {
+          // Check if .hugsyrc.json exists
+          if (!ProjectConfig.exists()) {
+            logger.error('No .hugsyrc.json found.');
+            return;
+          }
+
+          let hasChanges = false;
+
+          // Process each package
+          for (const pkg of packages) {
+            logger.divider();
+            logger.info(`Removing ${pkg} from configuration...`);
+            
+            const removed = removeFromHugsyConfig(pkg);
+            if (removed) {
+              hasChanges = true;
+              logger.info(`ℹ️  Package ${pkg} remains in node_modules (use npm/yarn/pnpm to uninstall)`);
+            }
+          }
+
+          // If configuration was updated, recompile
+          if (hasChanges) {
+            logger.divider();
+            logger.section('Recompiling Configuration');
+
+            const hugsyConfig = await ProjectConfig.read();
+            if (!hugsyConfig) {
+              logger.error('Failed to read .hugsyrc.json');
+              return;
+            }
+
+            const compiler = new Compiler({
+              projectRoot: process.cwd(),
+              verbose: false,
+            });
+            const compiledSettings = await compiler.compile(hugsyConfig);
+
+            // Update .claude/settings.json if it exists
+            const settingsPath = join(process.cwd(), '.claude', 'settings.json');
+            if (existsSync(settingsPath)) {
+              writeFileSync(settingsPath, JSON.stringify(compiledSettings, null, 2));
+              logger.success('Updated .claude/settings.json');
+            }
+
+            logger.divider();
+            logger.success('Configuration updated successfully');
+          } else {
+            logger.info('No changes made to configuration');
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.error(`Package uninstall failed: ${errorMessage}`);
+          if (process.env.HUGSY_DEBUG) {
+            console.error(error);
+          }
+        }
+        return;
+      }
+
+      // Original behavior: uninstall Hugsy entirely
       logger.section('Uninstalling Hugsy');
 
       try {

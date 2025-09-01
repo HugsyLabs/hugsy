@@ -8,17 +8,71 @@ import { join } from 'path';
 import { logger } from '../utils/logger.js';
 import { ProjectConfig } from '../utils/project-config.js';
 import { Compiler } from '@hugsylabs/hugsy-compiler';
+import { 
+  detectPackageType, 
+  installNpmPackage, 
+  updateHugsyConfig 
+} from '../utils/package-manager.js';
 
 export function installCommand(): Command {
   const command = new Command('install');
 
   command
     .description('Compile and install Hugsy configuration to Claude Code')
+    .argument('[packages...]', 'Packages to install (plugins or presets)')
     .option('-f, --force', 'Overwrite existing configuration')
     .option('-v, --verbose', 'Show detailed compilation process')
     .option('--no-backup', 'Skip backup of existing settings')
-    .action(async (options) => {
-      logger.section('Installing Hugsy');
+    .option('--plugin', 'Treat packages as plugins')
+    .option('--preset', 'Treat packages as presets')
+    .action(async (packages, options) => {
+      // If packages are provided, install them
+      if (packages && packages.length > 0) {
+        logger.section('Installing Packages');
+        
+        // Check if .hugsyrc.json exists
+        if (!ProjectConfig.exists()) {
+          logger.error('No .hugsyrc.json found. Run "hugsy init" first to create configuration.');
+          return;
+        }
+        
+        let hasChanges = false;
+        
+        for (const pkg of packages) {
+          logger.divider();
+          
+          // Detect package type
+          const type = detectPackageType(pkg, options);
+          logger.info(`Processing ${pkg} as ${type}`);
+          
+          // Install npm package (if not a local file)
+          if (!pkg.startsWith('./') && !pkg.startsWith('../') && !pkg.startsWith('/')) {
+            const installed = installNpmPackage(pkg);
+            if (!installed) {
+              logger.error(`Failed to install ${pkg}, skipping...`);
+              continue;
+            }
+          }
+          
+          // Update configuration
+          const updated = updateHugsyConfig(pkg, type);
+          if (updated) {
+            hasChanges = true;
+          }
+        }
+        
+        // If configuration was updated, compile it
+        if (hasChanges) {
+          logger.divider();
+          logger.section('Compiling Configuration');
+        } else {
+          logger.info('No configuration changes made');
+          return;
+        }
+      } else {
+        // Original behavior: just compile existing configuration
+        logger.section('Installing Hugsy');
+      }
 
       try {
         // 1. Check if .hugsyrc.json exists
