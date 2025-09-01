@@ -115,29 +115,138 @@ npm install --save-dev @hugsylabs/hugsy
 hugsy init
 ```
 
-Choose a preset that matches your project type.
+Choose a preset that matches your project type. The configuration will be automatically installed.
 
-### 2. Customize your configuration
+> **Note:** Use `hugsy init --no-install` if you want to review the configuration before installing.
 
-Edit `.hugsyrc.json`:
+### 2. Install packages (optional)
 
-```json
-{
-  "extends": "@hugsylabs/hugsy-compiler/presets/development",
-  "slashCommands": {
-    "custom": "./.claude/commands/**/*.md"
-  }
-}
-```
-
-### 3. Compile and deploy
+Add plugins or presets to enhance your configuration:
 
 ```bash
-hugsy install
-# This generates .claude/settings.json and copies slash commands to .claude/commands/
+# Install a community plugin (example)
+hugsy install ./plugins/my-team-plugin.js
+
+# Install from npm (when available)
+hugsy install @hugsy/plugin-security
+
+# Install multiple packages
+hugsy install ./plugins/lint.js ./presets/team-config.json
+```
+
+### 3. Manage your configuration
+
+```bash
+# Check current status
+hugsy status
+
+# Uninstall specific packages
+hugsy uninstall ./plugins/my-team-plugin.js
+
+# Uninstall Hugsy completely
+hugsy uninstall
 ```
 
 Your Claude Code configuration is now ready!
+
+## CLI Reference
+
+### `hugsy init [preset]`
+
+Initialize Hugsy configuration in your project.
+
+**Arguments:**
+- `preset` - Optional preset to use (recommended, security, permissive, custom)
+
+**Options:**
+- `-f, --force` - Overwrite existing configuration
+- `--no-install` - Skip automatic installation after initialization
+
+**Example:**
+```bash
+# Interactive initialization
+hugsy init
+
+# Use specific preset
+hugsy init recommended
+
+# Initialize without auto-install
+hugsy init --no-install
+```
+
+### `hugsy install [packages...]`
+
+Install Hugsy configuration or add packages to your configuration.
+
+**Arguments:**
+- `packages` - Optional packages to install (plugins or presets)
+
+**Options:**
+- `-f, --force` - Overwrite existing configuration
+- `-v, --verbose` - Show detailed compilation process
+- `--no-backup` - Skip backup of existing settings
+- `--plugin` - Treat packages as plugins
+- `--preset` - Treat packages as presets
+
+**Example:**
+```bash
+# Install current configuration
+hugsy install
+
+# Install plugins
+hugsy install ./plugins/security.js ./plugins/lint.js
+
+# Install preset with explicit type
+hugsy install ./presets/strict-config.json --preset
+```
+
+### `hugsy uninstall [packages...]`
+
+Remove Hugsy or packages from your project.
+
+**Arguments:**
+- `packages` - Optional packages to uninstall (if not provided, uninstalls Hugsy entirely)
+
+**Options:**
+- `--keep-config` - Keep .hugsyrc.json file (for full uninstall)
+- `-y, --yes` - Skip confirmation
+
+**Example:**
+```bash
+# Uninstall specific packages
+hugsy uninstall ./plugins/security.js
+
+# Uninstall Hugsy completely
+hugsy uninstall
+
+# Uninstall without confirmation
+hugsy uninstall --yes
+```
+
+### `hugsy status`
+
+Check the current Hugsy installation status.
+
+**Example:**
+```bash
+hugsy status
+```
+
+### `hugsy config`
+
+Display the current Hugsy configuration.
+
+**Options:**
+- `-r, --raw` - Show raw configuration before compilation
+
+**Example:**
+```bash
+# Show compiled configuration
+hugsy config
+
+# Show raw .hugsyrc.json content
+hugsy config --raw
+```
 
 ## Plugin Development
 
