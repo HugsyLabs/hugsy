@@ -3,12 +3,13 @@
  */
 
 import { Command } from 'commander';
-import { writeFileSync } from 'fs';
+import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import chalk from 'chalk';
 import prompts from 'prompts';
 import { logger } from '../utils/logger.js';
 import { ProjectConfig } from '../utils/project-config.js';
+import { Compiler } from '@hugsylabs/hugsy-compiler';
 import type { HugsyConfig } from '@hugsylabs/hugsy-compiler';
 
 // Available presets
@@ -38,6 +39,7 @@ export function initCommand(): Command {
     .description('Initialize Hugsy configuration in current project')
     .argument('[preset]', 'Preset to use (recommended, security, permissive)', 'custom')
     .option('-f, --force', 'Overwrite existing configuration')
+    .option('--no-install', 'Skip automatic installation after initialization')
     .action(async (preset, options) => {
       logger.section('Initializing Hugsy Configuration');
 
@@ -107,14 +109,55 @@ export function initCommand(): Command {
           logger.item('Plugins', config.plugins.join(', '));
         }
 
-        logger.section('Next Steps');
-        logger.item(
-          `Run ${chalk.cyan('hugsy install')} to compile and activate your configuration`
-        );
-        logger.item(`Edit ${chalk.cyan('.hugsyrc.json')} to customize your configuration`);
-        logger.item(
-          `Check ${chalk.cyan('.claude/settings.json')} after install to see compiled output`
-        );
+        // Automatically install unless --no-install is specified
+        if (options.install !== false) {
+          logger.divider();
+          logger.section('Installing Configuration');
+          
+          try {
+            // Compile the configuration
+            const compiler = new Compiler({
+              projectRoot: process.cwd(),
+              verbose: false,
+            });
+            const compiledSettings = await compiler.compile(config);
+            
+            // Create .claude directory
+            const claudeDir = join(process.cwd(), '.claude');
+            if (!existsSync(claudeDir)) {
+              mkdirSync(claudeDir, { recursive: true });
+              logger.success('Created .claude directory');
+            }
+            
+            // Write compiled settings
+            const settingsPath = join(claudeDir, 'settings.json');
+            writeFileSync(settingsPath, JSON.stringify(compiledSettings, null, 2));
+            logger.success('Created .claude/settings.json');
+            
+            // Success message
+            logger.divider();
+            logger.success('Hugsy initialized and installed successfully!');
+            logger.section('Next Steps');
+            logger.item('Your Claude Code configuration is now active');
+            logger.item(`Edit ${chalk.cyan('.hugsyrc.json')} to customize your configuration`);
+            logger.item(`Run ${chalk.cyan('hugsy status')} to verify installation`);
+          } catch (installError) {
+            logger.warning('Failed to automatically install configuration');
+            logger.info(`Run ${chalk.cyan('hugsy install')} manually to complete setup`);
+            if (process.env.HUGSY_DEBUG) {
+              console.error(installError);
+            }
+          }
+        } else {
+          logger.section('Next Steps');
+          logger.item(
+            `Run ${chalk.cyan('hugsy install')} to compile and activate your configuration`
+          );
+          logger.item(`Edit ${chalk.cyan('.hugsyrc.json')} to customize your configuration`);
+          logger.item(
+            `Check ${chalk.cyan('.claude/settings.json')} after install to see compiled output`
+          );
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         logger.error(`Initialization failed: ${errorMessage}`);
