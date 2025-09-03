@@ -5,13 +5,14 @@
 import { Command } from 'commander';
 import { existsSync, mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
+import prompts from 'prompts';
 import { logger } from '../utils/logger.js';
 import { ProjectConfig } from '../utils/project-config.js';
 import { Compiler } from '@hugsylabs/hugsy-compiler';
-import { 
-  detectPackageType, 
-  installNpmPackage, 
-  updateHugsyConfig 
+import {
+  detectPackageType,
+  installNpmPackage,
+  updateHugsyConfig,
 } from '../utils/package-manager.js';
 
 export function installCommand(): Command {
@@ -29,22 +30,22 @@ export function installCommand(): Command {
       // If packages are provided, install them
       if (packages && packages.length > 0) {
         logger.section('Installing Packages');
-        
+
         // Check if .hugsyrc.json exists
         if (!ProjectConfig.exists()) {
           logger.error('No .hugsyrc.json found. Run "hugsy init" first to create configuration.');
           return;
         }
-        
+
         let hasChanges = false;
-        
+
         for (const pkg of packages) {
           logger.divider();
-          
+
           // Detect package type
           const type = detectPackageType(pkg, options);
           logger.info(`Processing ${pkg} as ${type}`);
-          
+
           // Install npm package (if not a local file)
           if (!pkg.startsWith('./') && !pkg.startsWith('../') && !pkg.startsWith('/')) {
             const installed = installNpmPackage(pkg);
@@ -53,14 +54,14 @@ export function installCommand(): Command {
               continue;
             }
           }
-          
+
           // Update configuration
           const updated = updateHugsyConfig(pkg, type);
           if (updated) {
             hasChanges = true;
           }
         }
-        
+
         // If configuration was updated, compile it
         if (hasChanges) {
           logger.divider();
@@ -105,9 +106,27 @@ export function installCommand(): Command {
 
         if (existsSync(settingsPath)) {
           if (!options.force) {
-            logger.error('Project already has .claude/settings.json');
-            logger.info('Use --force to overwrite');
-            return;
+            logger.warning('Project already has .claude/settings.json');
+
+            // Skip interactive prompt if not in TTY (non-interactive mode)
+            const isTTY = process.stdin.isTTY;
+
+            if (!isTTY) {
+              logger.info('Use --force to overwrite in non-interactive mode');
+              return;
+            }
+
+            const { overwrite } = await prompts({
+              type: 'confirm',
+              name: 'overwrite',
+              message: 'Do you want to overwrite the existing settings?',
+              initial: false,
+            });
+
+            if (!overwrite) {
+              logger.info('Installation cancelled');
+              return;
+            }
           }
         }
 
