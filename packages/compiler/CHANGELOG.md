@@ -1,5 +1,15 @@
 # @hugsylabs/hugsy-compiler
 
+## 0.1.5
+
+### Patch Changes
+
+- 64dcb18: Fix plugin loading errors and improve module resolution
+  - Fixed plugin loading to return null on failure instead of empty object
+  - Improved npm package resolution using require.resolve
+  - Added better error logging for debugging plugin loading issues
+  - Plugins that fail to load are now correctly excluded from the count
+
 ## 0.1.4
 
 ### Patch Changes
