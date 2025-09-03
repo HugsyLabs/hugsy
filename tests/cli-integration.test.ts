@@ -13,7 +13,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const CLI_PATH = join(__dirname, '../packages/cli/dist/index.js');
 const TEST_DIR = '/tmp/hugsy-test-' + Date.now();
-const SNAPSHOTS_DIR = join(__dirname, 'snapshots');
 
 // Test directory will be created for each test suite
 let currentTestDir: string | null = null;
@@ -25,9 +24,9 @@ interface TestResult {
 }
 
 // Test utilities
-function runCommand(command: string, args: string[] = [], input: string = ''): Promise<TestResult> {
+function runCommand(command: string, args: string[] = [], input = ''): Promise<TestResult> {
   return new Promise<TestResult>((resolve) => {
-    const testDir = currentTestDir || TEST_DIR;
+    const testDir = currentTestDir ?? TEST_DIR;
     const proc = spawn('node', [CLI_PATH, command, ...args], {
       cwd: testDir,
       env: { ...process.env, NODE_ENV: 'test', NO_COLOR: '1' },
@@ -45,54 +44,54 @@ function runCommand(command: string, args: string[] = [], input: string = ''): P
     }
 
     proc.on('close', (code: number | null) => {
-      resolve({ code: code || 0, stdout, stderr });
+      resolve({ code: code ?? 0, stdout, stderr });
     });
   });
 }
 
 function assertFileExists(path: string, message?: string): void {
-  expect(existsSync(path), message || `File should exist: ${path}`).toBe(true);
+  expect(existsSync(path), message ?? `File should exist: ${path}`).toBe(true);
 }
 
 function assertFileNotExists(path: string, message?: string): void {
-  expect(existsSync(path), message || `File should not exist: ${path}`).toBe(false);
+  expect(existsSync(path), message ?? `File should not exist: ${path}`).toBe(false);
 }
 
-function assertJsonContent<T = any>(
+function assertJsonContent<T = unknown>(
   path: string,
   validator: (content: T) => boolean,
   message?: string
 ): T {
   assertFileExists(path);
   const content = JSON.parse(readFileSync(path, 'utf-8'));
-  expect(validator(content), message || 'JSON content validation failed').toBe(true);
+  expect(validator(content), message ?? 'JSON content validation failed').toBe(true);
   return content;
 }
 
-function assertSnapshot(actual: any, snapshotName: string): void {
+function assertSnapshot(actual: unknown, snapshotName: string): void {
   // Use Vitest's built-in snapshot functionality
   expect(actual).toMatchSnapshot(snapshotName);
 }
 
 // Test setup and cleanup
 const testEnvironment = {
-  async setup(dir?: string): Promise<void> {
-    const testDir = dir || TEST_DIR;
+  setup(dir?: string): void {
+    const testDir = dir ?? TEST_DIR;
     mkdirSync(testDir, { recursive: true });
     currentTestDir = testDir;
   },
 
-  async cleanup(dir?: string): Promise<void> {
-    const testDir = dir || currentTestDir || TEST_DIR;
+  cleanup(dir?: string): void {
+    const testDir = dir ?? currentTestDir ?? TEST_DIR;
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
     currentTestDir = null;
   },
 
-  async reset(dir?: string) {
-    await this.cleanup(dir);
-    await this.setup(dir);
+  reset(dir?: string) {
+    this.cleanup(dir);
+    this.setup(dir);
   },
 };
 
@@ -101,12 +100,12 @@ describe('Hugsy CLI Integration Tests', () => {
   describe('Basic Commands', () => {
     const testDir = '/tmp/hugsy-test-basic-' + Date.now();
 
-    beforeAll(async () => {
-      await testEnvironment.setup(testDir);
+    beforeAll(() => {
+      testEnvironment.setup(testDir);
     });
 
-    afterAll(async () => {
-      await testEnvironment.cleanup(testDir);
+    afterAll(() => {
+      testEnvironment.cleanup(testDir);
     });
 
     it('should show help', async () => {
@@ -126,12 +125,12 @@ describe('Hugsy CLI Integration Tests', () => {
   describe('Configuration Initialization', () => {
     const testDir = '/tmp/hugsy-test-init-' + Date.now();
 
-    beforeAll(async () => {
-      await testEnvironment.setup(testDir);
+    beforeAll(() => {
+      testEnvironment.setup(testDir);
     });
 
-    afterAll(async () => {
-      await testEnvironment.cleanup(testDir);
+    afterAll(() => {
+      testEnvironment.cleanup(testDir);
     });
 
     it('should init with recommended preset', async () => {
@@ -166,17 +165,17 @@ describe('Hugsy CLI Integration Tests', () => {
     const testDir = '/tmp/hugsy-test-install-' + Date.now();
 
     beforeAll(async () => {
-      await testEnvironment.setup(testDir);
+      testEnvironment.setup(testDir);
       // Setup config first
       await runCommand('init', [], '1\n');
     });
 
-    afterAll(async () => {
-      await testEnvironment.cleanup(testDir);
+    afterAll(() => {
+      testEnvironment.cleanup(testDir);
     });
 
     it('should install successfully', async () => {
-      const result = await runCommand('install');
+      const result = await runCommand('install', ['--force']);
       expect(result.code).toBe(0);
 
       const settingsPath = join(testDir, '.claude', 'settings.json');
@@ -211,12 +210,12 @@ describe('Hugsy CLI Integration Tests', () => {
   describe('Status Command', () => {
     const testDir = '/tmp/hugsy-test-status-' + Date.now();
 
-    beforeAll(async () => {
-      await testEnvironment.setup(testDir);
+    beforeAll(() => {
+      testEnvironment.setup(testDir);
     });
 
-    afterAll(async () => {
-      await testEnvironment.cleanup(testDir);
+    afterAll(() => {
+      testEnvironment.cleanup(testDir);
     });
 
     it('should work without config', async () => {
@@ -248,12 +247,12 @@ describe('Hugsy CLI Integration Tests', () => {
   describe('Uninstallation', () => {
     const testDir = '/tmp/hugsy-test-uninstall-' + Date.now();
 
-    beforeAll(async () => {
-      await testEnvironment.setup(testDir);
+    beforeAll(() => {
+      testEnvironment.setup(testDir);
     });
 
-    afterAll(async () => {
-      await testEnvironment.cleanup(testDir);
+    afterAll(() => {
+      testEnvironment.cleanup(testDir);
     });
 
     it('should uninstall and remove config', async () => {
@@ -282,7 +281,7 @@ describe('Hugsy CLI Integration Tests', () => {
     });
 
     it('should handle nothing to uninstall', async () => {
-      await testEnvironment.reset(testDir);
+      testEnvironment.reset(testDir);
       const result = await runCommand('uninstall', ['-y']);
       expect(result.code).toBe(0);
     });
@@ -291,12 +290,12 @@ describe('Hugsy CLI Integration Tests', () => {
   describe('Edge Cases', () => {
     const testDir = '/tmp/hugsy-test-edge-' + Date.now();
 
-    beforeAll(async () => {
-      await testEnvironment.setup(testDir);
+    beforeAll(() => {
+      testEnvironment.setup(testDir);
     });
 
-    afterAll(async () => {
-      await testEnvironment.cleanup(testDir);
+    afterAll(() => {
+      testEnvironment.cleanup(testDir);
     });
 
     it('should fail install without init', async () => {
@@ -312,7 +311,7 @@ describe('Hugsy CLI Integration Tests', () => {
     });
 
     it('should work with custom config', async () => {
-      await testEnvironment.reset(testDir);
+      testEnvironment.reset(testDir);
       const customConfig = {
         extends: '@hugsy/recommended',
         permissions: {
@@ -337,16 +336,16 @@ describe('Hugsy CLI Integration Tests', () => {
       // First install
       const config = { permissions: { allow: ['Read(**)'] } };
       writeFileSync(join(testDir, '.hugsyrc.json'), JSON.stringify(config, null, 2));
-      
+
       await runCommand('install');
-      
+
       // Wait a moment to ensure file timestamp differs
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Modify configuration
       config.permissions.allow = ['Read(**)', 'Write(**)'];
       writeFileSync(join(testDir, '.hugsyrc.json'), JSON.stringify(config, null, 2));
-      
+
       // Check status - should detect change
       const result = await runCommand('status');
       expect(result.stdout).toMatch(/Configuration has changed|needs? update|out of sync/i);
@@ -358,14 +357,14 @@ describe('Hugsy CLI Integration Tests', () => {
       if (existsSync(claudeDir)) {
         rmSync(claudeDir, { recursive: true, force: true });
       }
-      
+
       // First create a config file
       const config = { permissions: { allow: ['Read(**)'] } };
       writeFileSync(join(testDir, '.hugsyrc.json'), JSON.stringify(config, null, 2));
-      
+
       // Create .claude directory but no settings.json (empty directory)
       mkdirSync(claudeDir, { recursive: true });
-      
+
       const result = await runCommand('status');
       expect(result.stdout).toMatch(/partial installation|settings\.json is missing/i);
     });
