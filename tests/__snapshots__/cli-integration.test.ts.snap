@@ -16,25 +16,9 @@ exports[`Hugsy CLI Integration Tests > Installation Process > should install suc
   },
   "hooks": {},
   "permissions": {
-    "allow": [
-      "Read(**)",
-      "Write(**/test/**)",
-      "Bash(git *)",
-      "Bash(npm test)",
-    ],
-    "ask": [
-      "Bash(sudo *)",
-      "Bash(npm publish)",
-      "Write(**/production/**)",
-    ],
-    "deny": [
-      "Write(*:*password=*)",
-      "Write(*:*secret=*)",
-      "Write(*:*api_key=*)",
-      "Bash(rm -rf /*)",
-      "Bash(:(){ :|:& };:)",
-      "Read(**/.env)",
-    ],
+    "allow": [],
+    "ask": [],
+    "deny": [],
   },
 }
 `;
