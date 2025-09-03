@@ -79,7 +79,7 @@ importers:
   packages/cli:
     dependencies:
       '@hugsylabs/hugsy-compiler':
-        specifier: ^0.1.7
+        specifier: ^0.1.8
         version: link:../compiler
       '@hugsylabs/hugsy-types':
         specifier: ^0.0.6
