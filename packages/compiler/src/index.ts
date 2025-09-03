@@ -4,7 +4,7 @@
  */
 
 import { readFileSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { resolve, dirname, join } from 'path';
 import { pathToFileURL, fileURLToPath } from 'url';
 import ora from 'ora';
 import type {
@@ -1206,16 +1206,42 @@ export class Compiler {
 
     // Handle npm packages
     try {
-      // Try to resolve the module path first
       let modulePath: string;
-      try {
-        // Try to resolve the module from node_modules
-        modulePath = require.resolve(moduleName, { paths: [this.projectRoot] });
-        // Convert to file URL for dynamic import
-        modulePath = pathToFileURL(modulePath).href;
-      } catch {
-        // If require.resolve fails, try direct import as fallback
-        modulePath = moduleName;
+      
+      // First, check if module exists in project's node_modules
+      const localModulePath = join(this.projectRoot, 'node_modules', moduleName);
+      
+      if (existsSync(localModulePath)) {
+        // Module found in local node_modules
+        const packageJsonPath = join(localModulePath, 'package.json');
+        let entryPoint = 'index.js';
+        
+        if (existsSync(packageJsonPath)) {
+          try {
+            const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+            // Support both ESM and CommonJS entry points
+            entryPoint = packageJson.module || packageJson.main || 'index.js';
+          } catch (err) {
+            this.log(`Failed to parse package.json for ${moduleName}: ${err}`);
+          }
+        }
+        
+        const fullPath = join(localModulePath, entryPoint);
+        modulePath = pathToFileURL(fullPath).href;
+        this.log(`Found ${type} in local node_modules: ${fullPath}`);
+      } else {
+        // Try using createRequire for more robust resolution
+        try {
+          const { createRequire } = await import('module');
+          const require = createRequire(join(this.projectRoot, 'package.json'));
+          const resolvedPath = require.resolve(moduleName);
+          modulePath = pathToFileURL(resolvedPath).href;
+          this.log(`Resolved ${type} via createRequire: ${resolvedPath}`);
+        } catch (requireErr) {
+          // Fall back to direct import (for global packages)
+          modulePath = moduleName;
+          this.log(`${type} not found locally, trying direct import: ${moduleName}`);
+        }
       }
 
       this.log(`Attempting to import ${type} from: ${modulePath}`);
