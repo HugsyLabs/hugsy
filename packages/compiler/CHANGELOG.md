@@ -1,5 +1,15 @@
 # @hugsylabs/hugsy-compiler
 
+## 0.1.8
+
+### Patch Changes
+
+- 9dfedbc: Fix test failures in CI environment
+  - Convert all relative plugin and preset paths to absolute paths in compiler tests
+  - This resolves file resolution issues that occur in CI environments
+  - Ensures consistent test behavior across local and CI environments
+  - Update CLI to use the fixed compiler version
+
 ## 0.1.7
 
 ### Patch Changes

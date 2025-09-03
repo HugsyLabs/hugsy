@@ -1,5 +1,23 @@
 # @hugsylabs/hugsy
 
+## 0.1.3
+
+### Patch Changes
+
+- 9dfedbc: Disable Git hooks in CI environment
+  - Add HUSKY=0 environment variable to disable Git hooks during CI releases
+  - This prevents test failures caused by the CI environment differences
+  - CI already runs tests separately, so pre-push hooks are redundant
+
+- 9dfedbc: Fix test failures in CI environment
+  - Convert all relative plugin and preset paths to absolute paths in compiler tests
+  - This resolves file resolution issues that occur in CI environments
+  - Ensures consistent test behavior across local and CI environments
+  - Update CLI to use the fixed compiler version
+
+- Updated dependencies [9dfedbc]
+  - @hugsylabs/hugsy-compiler@0.1.8
+
 ## 0.1.2
 
 ### Patch Changes
