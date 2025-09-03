@@ -8,7 +8,7 @@ Prepare for releasing version $ARGUMENTS:
 ## Pre-release Checklist
 1. Run all tests: `pnpm test`
 2. Run lint check: `pnpm lint`
-3. Build all packages: `pnpm build`
+3. Build all packages: `pnpm run build`
 4. Update version numbers in package.json files
 5. Update CHANGELOG.md with release notes
 

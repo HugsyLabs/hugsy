@@ -1204,9 +1204,22 @@ export class Compiler {
       return type === 'preset' ? {} as T : null;
     }
 
-    // Handle npm packages (for future use)
+    // Handle npm packages
     try {
-      const module = await import(moduleName);
+      // Try to resolve the module path first
+      let modulePath: string;
+      try {
+        // Try to resolve the module from node_modules
+        modulePath = require.resolve(moduleName, { paths: [this.projectRoot] });
+        // Convert to file URL for dynamic import
+        modulePath = pathToFileURL(modulePath).href;
+      } catch {
+        // If require.resolve fails, try direct import as fallback
+        modulePath = moduleName;
+      }
+
+      this.log(`Attempting to import ${type} from: ${modulePath}`);
+      const module = await import(modulePath);
       const result = (module.default ?? module) as T;
 
       // Cache if preset
@@ -1216,9 +1229,19 @@ export class Compiler {
 
       return result;
     } catch (error) {
-      const errorMsg = `${type} '${moduleName}' not found or failed to load`;
-      this.handleError(errorMsg, error instanceof Error ? { error: error.message } : undefined);
-      return {} as T; // Return empty configuration as fallback
+      // More detailed error logging for debugging
+      if (this.options.verbose) {
+        this.log(`⚠️  Failed to load ${type}: ${moduleName}`);
+        this.log(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        if (type === 'plugin' && moduleName.startsWith('@hugsylabs/')) {
+          this.log(`   Try: npm install ${moduleName} or pnpm add ${moduleName}`);
+        }
+      } else {
+        console.warn(`⚠️  ${type} '${moduleName}' not found or failed to load`);
+      }
+      
+      // Return null for plugins to indicate failure, empty object for presets
+      return type === 'plugin' ? null : {} as T;
     }
   }
 

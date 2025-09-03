@@ -74,7 +74,7 @@ importers:
     dependencies:
       '@hugsylabs/hugsy-compiler':
         specifier: ^0.1.3
-        version: link:../compiler
+        version: 0.1.4
       '@hugsylabs/hugsy-types':
         specifier: ^0.0.6
         version: link:../types
@@ -868,8 +868,8 @@ packages:
       levn: 0.4.1
     dev: true
 
-  /@hugsylabs/hugsy-compiler@0.1.3:
-    resolution: {integrity: sha512-DPugNkWr1LDLBvMxD4urXnTOzWR0pvrWQMcJcSBYzQGlY29JQuuKf4TLO5p9C15kn5wZ59pgAliCSrzmw8YFkg==}
+  /@hugsylabs/hugsy-compiler@0.1.4:
+    resolution: {integrity: sha512-ui8YyUhVS1wsFu3JSiYeb4ZOr9ZO0st27q//coiIE7D20f7k0oj3e8+AnXsRbTf+vCsCTN4mwpUahzR7kAAvDQ==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@hugsylabs/hugsy-types': 0.0.6
@@ -877,19 +877,17 @@ packages:
       glob: 10.4.5
       ora: 8.2.0
       yaml: 2.8.1
-    dev: true
 
   /@hugsylabs/hugsy-types@0.0.6:
     resolution: {integrity: sha512-YZxCk7y5jN6NTXG6q53pa3GZsdbLDi5kAGbTlUJKOxYgd3gsI1vNcsbl9+9wczCPt2QW2Ayj55am5Vv8ibLhnA==}
     engines: {node: '>=18.0.0'}
-    dev: true
 
   /@hugsylabs/hugsy@0.1.1:
     resolution: {integrity: sha512-oGjW3J9F1tkSjjvJrlEKzuhMGUA+ECP/j78C3amKdvzwH4bnhoGbSKXqdFOVrYIyVf/EN7/uy4d1PwB84u3z3g==}
     engines: {node: '>=18.0.0'}
     hasBin: true
     dependencies:
-      '@hugsylabs/hugsy-compiler': 0.1.3
+      '@hugsylabs/hugsy-compiler': 0.1.4
       '@hugsylabs/hugsy-types': 0.0.6
       chalk: 5.6.0
       commander: 11.1.0
