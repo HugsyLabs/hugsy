@@ -1,0 +1,16 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running linter..."
+pnpm lint || (echo "❌ Lint failed" && exit 1)
+
+echo "🔨 Building project..."
+pnpm build || (echo "❌ Build failed" && exit 1)
+
+echo "🧪 Running tests..."
+pnpm test || (echo "❌ Tests failed" && exit 1)
+
+echo "📝 Running lint-staged for changed files..."
+npx lint-staged
+
+echo "✅ Pre-commit checks passed!"
