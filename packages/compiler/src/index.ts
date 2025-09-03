@@ -60,12 +60,12 @@ export class Compiler {
    */
   async compile(config: HugsyConfig): Promise<ClaudeSettings> {
     this.log('Starting compilation...');
-    
+
     // Check if config is an array (invalid)
     if (Array.isArray(config)) {
       throw new CompilerError('Configuration must be an object, not an array');
     }
-    
+
     // Check if config is an object
     if (typeof config !== 'object' || config === null) {
       throw new CompilerError('Configuration must be an object');
@@ -73,7 +73,7 @@ export class Compiler {
 
     // Sanitize configuration first (remove zero-width and control characters)
     config = this.sanitizeConfigValues(config);
-    
+
     // Normalize field names (handle uppercase variants)
     config = this.normalizeConfig(config);
 
@@ -89,43 +89,56 @@ export class Compiler {
 
     // Load plugins and apply transformations
     let transformedConfig = { ...config };
-    
+
     // Preserve inherited values from presets
     let inheritedValues: Partial<HugsyConfig> = {};
     for (const preset of this.presets.values()) {
-      if (preset.includeCoAuthoredBy !== undefined && inheritedValues.includeCoAuthoredBy === undefined) {
+      if (
+        preset.includeCoAuthoredBy !== undefined &&
+        inheritedValues.includeCoAuthoredBy === undefined
+      ) {
         inheritedValues.includeCoAuthoredBy = preset.includeCoAuthoredBy;
       }
-      if (preset.cleanupPeriodDays !== undefined && inheritedValues.cleanupPeriodDays === undefined) {
+      if (
+        preset.cleanupPeriodDays !== undefined &&
+        inheritedValues.cleanupPeriodDays === undefined
+      ) {
         inheritedValues.cleanupPeriodDays = preset.cleanupPeriodDays;
       }
     }
-    
+
     // Merge inherited values into config if not already set
-    if (transformedConfig.includeCoAuthoredBy === undefined && inheritedValues.includeCoAuthoredBy !== undefined) {
+    if (
+      transformedConfig.includeCoAuthoredBy === undefined &&
+      inheritedValues.includeCoAuthoredBy !== undefined
+    ) {
       transformedConfig.includeCoAuthoredBy = inheritedValues.includeCoAuthoredBy;
     }
-    if (transformedConfig.cleanupPeriodDays === undefined && inheritedValues.cleanupPeriodDays !== undefined) {
+    if (
+      transformedConfig.cleanupPeriodDays === undefined &&
+      inheritedValues.cleanupPeriodDays !== undefined
+    ) {
       transformedConfig.cleanupPeriodDays = inheritedValues.cleanupPeriodDays;
     }
-    
+
     if (config.plugins) {
       this.log(`Loading ${config.plugins.length} plugin(s): ${config.plugins.join(', ')}`);
       await this.loadPlugins(config.plugins);
 
       // Apply plugin transformations with progress tracking
-      const transformSpinner = !this.options.verbose && this.plugins.size > 1 
-        ? ora('Applying plugin transformations...').start() 
-        : null;
-        
+      const transformSpinner =
+        !this.options.verbose && this.plugins.size > 1
+          ? ora('Applying plugin transformations...').start()
+          : null;
+
       let pluginIndex = 0;
       for (const [pluginPath, plugin] of this.plugins.entries()) {
         pluginIndex++;
-        
+
         if (transformSpinner) {
           transformSpinner.text = `Applying transformation ${pluginIndex}/${this.plugins.size}: ${plugin.name ?? pluginPath}`;
         }
-        
+
         if (plugin.transform && typeof plugin.transform === 'function') {
           const before = {
             env: transformedConfig.env ? { ...transformedConfig.env } : undefined,
@@ -135,13 +148,18 @@ export class Compiler {
           };
 
           const pluginName = plugin.name ?? pluginPath;
-          
+
           try {
             // Support both sync and async transform functions
             const result = plugin.transform(transformedConfig);
-            
+
             // Check if result is a Promise without using any
-            if (result && typeof result === 'object' && 'then' in result && typeof result.then === 'function') {
+            if (
+              result &&
+              typeof result === 'object' &&
+              'then' in result &&
+              typeof result.then === 'function'
+            ) {
               const awaitedResult = await result;
               // Check if the result is valid
               if (awaitedResult === undefined || awaitedResult === null) {
@@ -173,7 +191,7 @@ export class Compiler {
           }
         }
       }
-      
+
       if (transformSpinner) {
         transformSpinner.succeed(`Applied ${this.plugins.size} plugin transformation(s)`);
       }
@@ -191,10 +209,10 @@ export class Compiler {
       statusLine: this.validateStatusLine(transformedConfig.statusLine),
       // Only include these fields if they are explicitly set
       ...(transformedConfig.includeCoAuthoredBy !== undefined && {
-        includeCoAuthoredBy: transformedConfig.includeCoAuthoredBy
+        includeCoAuthoredBy: transformedConfig.includeCoAuthoredBy,
       }),
       ...(transformedConfig.cleanupPeriodDays !== undefined && {
-        cleanupPeriodDays: transformedConfig.cleanupPeriodDays
+        cleanupPeriodDays: transformedConfig.cleanupPeriodDays,
       }),
     };
 
@@ -224,7 +242,7 @@ export class Compiler {
         try {
           const errors = plugin.validate(transformedConfig);
           if (Array.isArray(errors) && errors.length > 0) {
-            errors.forEach(error => {
+            errors.forEach((error) => {
               validationErrors.push(`[${pluginName}] ${error}`);
             });
           }
@@ -233,17 +251,14 @@ export class Compiler {
         }
       }
     }
-    
+
     // Handle validation errors
     if (validationErrors.length > 0) {
       if (this.options.throwOnError) {
-        throw new CompilerError(
-          'Configuration validation failed',
-          { errors: validationErrors }
-        );
+        throw new CompilerError('Configuration validation failed', { errors: validationErrors });
       } else {
         console.warn('⚠️  Configuration validation warnings:');
-        validationErrors.forEach(error => console.warn(`  - ${error}`));
+        validationErrors.forEach((error) => console.warn(`  - ${error}`));
       }
     }
 
@@ -259,28 +274,45 @@ export class Compiler {
   private validateConfig(config: HugsyConfig): void {
     // Check for unknown/invalid properties
     const validKeys = [
-      'extends', 'plugins', 'env', 'permissions', 'hooks', 'commands',
-      'model', 'apiKeyHelper', 'cleanupPeriodDays', 'includeCoAuthoredBy',
-      'statusLine', 'forceLoginMethod', 'forceLoginOrgUUID',
-      'enableAllProjectMcpServers', 'enabledMcpjsonServers', 'disabledMcpjsonServers',
-      'awsAuthRefresh', 'awsCredentialExport'
+      'extends',
+      'plugins',
+      'env',
+      'permissions',
+      'hooks',
+      'commands',
+      'model',
+      'apiKeyHelper',
+      'cleanupPeriodDays',
+      'includeCoAuthoredBy',
+      'statusLine',
+      'forceLoginMethod',
+      'forceLoginOrgUUID',
+      'enableAllProjectMcpServers',
+      'enabledMcpjsonServers',
+      'disabledMcpjsonServers',
+      'awsAuthRefresh',
+      'awsCredentialExport',
     ];
-    
+
     for (const key of Object.keys(config)) {
       // Check for non-ASCII characters in field names
       // eslint-disable-next-line no-control-regex
       if (!/^[\x00-\x7F]+$/.test(key)) {
-        this.handleError(`Invalid configuration field '${key}': field names must contain only ASCII characters`);
+        this.handleError(
+          `Invalid configuration field '${key}': field names must contain only ASCII characters`
+        );
         continue;
       }
-      
+
       // Check for zero-width or control characters
       // eslint-disable-next-line no-control-regex
       if (/[\u200B-\u200D\uFEFF\u0000-\u001F\u007F-\u009F]/.test(key)) {
-        this.handleError(`Invalid configuration field '${key}': contains invisible or control characters`);
+        this.handleError(
+          `Invalid configuration field '${key}': contains invisible or control characters`
+        );
         continue;
       }
-      
+
       if (!validKeys.includes(key)) {
         this.log(`⚠️  Warning: Unknown configuration property '${key}' will be ignored`);
       }
@@ -288,18 +320,18 @@ export class Compiler {
     // Validate extends field
     if (config.extends !== undefined) {
       if (typeof config.extends !== 'string' && !Array.isArray(config.extends)) {
-        this.handleError(
-          `extends field must be a string or array of strings`,
-          { field: 'extends', type: typeof config.extends }
-        );
+        this.handleError(`extends field must be a string or array of strings`, {
+          field: 'extends',
+          type: typeof config.extends,
+        });
       }
       if (Array.isArray(config.extends)) {
         for (const item of config.extends) {
           if (typeof item !== 'string') {
-            this.handleError(
-              `extends field must be a string or array of strings`,
-              { field: 'extends', invalidItem: typeof item }
-            );
+            this.handleError(`extends field must be a string or array of strings`, {
+              field: 'extends',
+              invalidItem: typeof item,
+            });
           }
         }
       }
@@ -330,22 +362,21 @@ export class Compiler {
       this.handleError(
         `Invalid cleanupPeriodDays: expected number, got ${typeof config.cleanupPeriodDays}`,
         {
-          suggestion: 'cleanupPeriodDays should be a number representing days (e.g., 7 for one week)'
+          suggestion:
+            'cleanupPeriodDays should be a number representing days (e.g., 7 for one week)',
         }
       );
     }
-    
+
     // Validate env values are strings
     if (config.env) {
       for (const [key, value] of Object.entries(config.env)) {
         if (typeof value !== 'string') {
-          this.handleError(
-            `Invalid env value for '${key}': expected string, got ${typeof value}`,
-            {
-              value: JSON.stringify(value),
-              suggestion: 'Environment variables must be strings. If you need to pass complex data, use JSON.stringify()'
-            }
-          );
+          this.handleError(`Invalid env value for '${key}': expected string, got ${typeof value}`, {
+            value: JSON.stringify(value),
+            suggestion:
+              'Environment variables must be strings. If you need to pass complex data, use JSON.stringify()',
+          });
         }
       }
     }
@@ -417,7 +448,7 @@ export class Compiler {
       // eslint-disable-next-line no-control-regex
       return obj.replace(/[\u200B-\u200D\uFEFF\u0000-\u001F\u007F-\u009F]/g, '');
     }
-    
+
     if (Array.isArray(obj)) {
       for (let i = 0; i < obj.length; i++) {
         obj[i] = this.sanitizeConfigValues(obj[i]);
@@ -427,10 +458,10 @@ export class Compiler {
         obj[key] = this.sanitizeConfigValues(obj[key]);
       }
     }
-    
+
     return obj;
   }
-  
+
   /**
    * Log verbose messages
    */
@@ -742,13 +773,13 @@ export class Compiler {
             this.log(`Skipping file without extension: ${file}`);
             continue;
           }
-          
+
           // Only process markdown files
-          if (!(/\.(md|markdown)$/i).test(file)) {
+          if (!/\.(md|markdown)$/i.test(file)) {
             this.log(`Skipping non-markdown file: ${file}`);
             continue;
           }
-          
+
           const fullPath = resolve(this.projectRoot, file);
           if (existsSync(fullPath)) {
             const content = readFileSync(fullPath, 'utf-8');
@@ -759,7 +790,7 @@ export class Compiler {
 
             // Parse frontmatter if present
             const command = this.parseMarkdownCommand(content);
-            
+
             // Preserve case in command names (use original case as key)
             const commandKey = commandName; // Keep original case
             commands.set(commandKey, command);
@@ -947,14 +978,14 @@ export class Compiler {
 
     for (let i = 0; i < presetNames.length; i++) {
       const presetName = presetNames[i];
-      
+
       if (spinner) {
         spinner.text = `Loading preset ${i + 1}/${presetNames.length}: ${presetName}`;
       }
-      
+
       await this.loadPresetRecursive(presetName);
     }
-    
+
     if (spinner) {
       spinner.succeed(`Loaded ${presetNames.length} preset(s)`);
     }
@@ -996,7 +1027,7 @@ export class Compiler {
 
       // Normalize preset config fields (handle uppercase variants)
       const normalizedPreset = this.normalizeConfig(preset);
-      
+
       // Then add this preset (so it overrides its parents)
       this.presets.set(presetName, normalizedPreset as Preset);
       this.log(`Successfully loaded preset: ${presetName}`);
@@ -1012,17 +1043,17 @@ export class Compiler {
     const useSpinner = !this.options.verbose && plugins.length > 1;
     const spinner = useSpinner ? ora('Loading plugins...').start() : null;
     let loadedCount = 0;
-    
+
     for (let i = 0; i < plugins.length; i++) {
       const pluginName = plugins[i];
-      
+
       if (spinner) {
         spinner.text = `Loading plugin ${i + 1}/${plugins.length}: ${pluginName}`;
       }
-      
+
       this.log(`Loading plugin: ${pluginName}`);
       const plugin = await this.loadModule<Plugin>(pluginName, 'plugin');
-      
+
       if (plugin) {
         this.plugins.set(pluginName, plugin);
         const name = plugin.name ?? pluginName;
@@ -1038,17 +1069,21 @@ export class Compiler {
           const fullPath = resolve(this.projectRoot, pluginName);
           this.log(`    ⚠️  Warning: Plugin file not found or failed to load`);
           this.log(`    Expected location: ${fullPath}`);
-          if (!existsSync(fullPath) && !existsSync(fullPath + '.js') && !existsSync(fullPath + '.mjs')) {
+          if (
+            !existsSync(fullPath) &&
+            !existsSync(fullPath + '.js') &&
+            !existsSync(fullPath + '.mjs')
+          ) {
             this.log(`    Suggestion: Check if the file exists and the path is correct`);
           }
         }
-        
+
         if (spinner) {
           spinner.warn(`Failed to load plugin: ${pluginName}`);
         }
       }
     }
-    
+
     if (spinner) {
       if (loadedCount === plugins.length) {
         spinner.succeed(`Loaded ${loadedCount} plugin(s)`);
@@ -1089,8 +1124,23 @@ export class Compiler {
       // Then try local development path
       const possiblePaths = [
         // For @hugsylabs/hugsy-compiler package
-        resolve(this.projectRoot, 'node_modules', '@hugsylabs', 'hugsy-compiler', 'presets', `${presetName}.json`),
-        resolve(this.projectRoot, 'node_modules', '@hugsylabs', 'hugsy-compiler', 'dist', 'presets', `${presetName}.json`),
+        resolve(
+          this.projectRoot,
+          'node_modules',
+          '@hugsylabs',
+          'hugsy-compiler',
+          'presets',
+          `${presetName}.json`
+        ),
+        resolve(
+          this.projectRoot,
+          'node_modules',
+          '@hugsylabs',
+          'hugsy-compiler',
+          'dist',
+          'presets',
+          `${presetName}.json`
+        ),
         // For legacy @hugsy package
         resolve(this.projectRoot, 'node_modules', moduleName, 'index.json'),
         resolve(this.projectRoot, 'node_modules', moduleName, 'preset.json'),
@@ -1178,18 +1228,21 @@ export class Compiler {
       // Module not found - log warning and continue gracefully
       const checkedPaths = [];
       const extensionsToCheck = ['.js', '.mjs', '/index.js', '/index.mjs', '.json'];
-      const basePath = moduleName.startsWith('/') ? moduleName : resolve(this.projectRoot, moduleName);
-      
+      const basePath = moduleName.startsWith('/')
+        ? moduleName
+        : resolve(this.projectRoot, moduleName);
+
       for (const ext of extensionsToCheck) {
-        const fullPath = basePath.endsWith('.js') || basePath.endsWith('.mjs') || basePath.endsWith('.json')
-          ? basePath
-          : basePath + ext;
+        const fullPath =
+          basePath.endsWith('.js') || basePath.endsWith('.mjs') || basePath.endsWith('.json')
+            ? basePath
+            : basePath + ext;
         checkedPaths.push(fullPath);
       }
-      
+
       // Log warning instead of error for graceful handling
       console.warn(`${type} '${moduleName}' not found`);
-      
+
       if (this.options.verbose) {
         this.log(`⚠️  ${type} loading failed: ${moduleName}`);
         this.log(`   Checked locations: ${checkedPaths.join(', ')}`);
@@ -1199,33 +1252,33 @@ export class Compiler {
           this.log(`   Ensure the preset file exists and contains valid configuration`);
         }
       }
-      
+
       // Return appropriate empty value to continue compilation
-      return type === 'preset' ? {} as T : null;
+      return type === 'preset' ? ({} as T) : null;
     }
 
     // Handle npm packages
     try {
       let modulePath: string;
-      
+
       // First, check if module exists in project's node_modules
       const localModulePath = join(this.projectRoot, 'node_modules', moduleName);
-      
+
       if (existsSync(localModulePath)) {
         // Module found in local node_modules
         const packageJsonPath = join(localModulePath, 'package.json');
         let entryPoint = 'index.js';
-        
+
         if (existsSync(packageJsonPath)) {
           try {
             const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
             // Support both ESM and CommonJS entry points
-            entryPoint = packageJson.module || packageJson.main || 'index.js';
+            entryPoint = packageJson.module ?? packageJson.main ?? 'index.js';
           } catch (err) {
-            this.log(`Failed to parse package.json for ${moduleName}: ${err}`);
+            this.log(`Failed to parse package.json for ${moduleName}: ${String(err)}`);
           }
         }
-        
+
         const fullPath = join(localModulePath, entryPoint);
         modulePath = pathToFileURL(fullPath).href;
         this.log(`Found ${type} in local node_modules: ${fullPath}`);
@@ -1237,7 +1290,7 @@ export class Compiler {
           const resolvedPath = require.resolve(moduleName);
           modulePath = pathToFileURL(resolvedPath).href;
           this.log(`Resolved ${type} via createRequire: ${resolvedPath}`);
-        } catch (requireErr) {
+        } catch {
           // Fall back to direct import (for global packages)
           modulePath = moduleName;
           this.log(`${type} not found locally, trying direct import: ${moduleName}`);
@@ -1265,9 +1318,9 @@ export class Compiler {
       } else {
         console.warn(`⚠️  ${type} '${moduleName}' not found or failed to load`);
       }
-      
+
       // Return null for plugins to indicate failure, empty object for presets
-      return type === 'plugin' ? null : {} as T;
+      return type === 'plugin' ? null : ({} as T);
     }
   }
 
@@ -1326,10 +1379,10 @@ export class Compiler {
    */
   private normalizeConfig(config: HugsyConfig | Preset): HugsyConfig {
     const normalized: Partial<HugsyConfig> = {};
-    
+
     for (const [key, value] of Object.entries(config)) {
       const lowerKey = key.toLowerCase();
-      
+
       // Map common uppercase variants to lowercase
       switch (lowerKey) {
         case 'env':
@@ -1386,7 +1439,7 @@ export class Compiler {
           (normalized as Record<string, unknown>)[key] = value;
       }
     }
-    
+
     return normalized as HugsyConfig;
   }
 
@@ -1395,27 +1448,27 @@ export class Compiler {
    */
   private resolvePermissionConflicts(permissions: PermissionSettings): void {
     const duplicates: { permission: string; from: string; to: string }[] = [];
-    
+
     // Remove from allow if in ask
     const allowInAsk = permissions.allow.filter((pattern) => permissions.ask.includes(pattern));
     if (allowInAsk.length > 0) {
-      allowInAsk.forEach(p => duplicates.push({ permission: p, from: 'allow', to: 'ask' }));
+      allowInAsk.forEach((p) => duplicates.push({ permission: p, from: 'allow', to: 'ask' }));
     }
     permissions.allow = permissions.allow.filter((pattern) => !permissions.ask.includes(pattern));
 
     // Remove from allow and ask if in deny
     const allowInDeny = permissions.allow.filter((pattern) => permissions.deny.includes(pattern));
     if (allowInDeny.length > 0) {
-      allowInDeny.forEach(p => duplicates.push({ permission: p, from: 'allow', to: 'deny' }));
+      allowInDeny.forEach((p) => duplicates.push({ permission: p, from: 'allow', to: 'deny' }));
     }
     const askInDeny = permissions.ask.filter((pattern) => permissions.deny.includes(pattern));
     if (askInDeny.length > 0) {
-      askInDeny.forEach(p => duplicates.push({ permission: p, from: 'ask', to: 'deny' }));
+      askInDeny.forEach((p) => duplicates.push({ permission: p, from: 'ask', to: 'deny' }));
     }
-    
+
     permissions.allow = permissions.allow.filter((pattern) => !permissions.deny.includes(pattern));
     permissions.ask = permissions.ask.filter((pattern) => !permissions.deny.includes(pattern));
-    
+
     // Log deduplication info
     if (duplicates.length > 0 && this.options.verbose) {
       this.log('\n=== Permission Deduplication ===');
@@ -1426,7 +1479,9 @@ export class Compiler {
       this.log('');
     } else if (duplicates.length > 0) {
       // Non-verbose mode: brief message
-      console.log(`[Info] Resolved ${duplicates.length} permission conflict(s) using security-first priority (deny > ask > allow)`);
+      console.log(
+        `[Info] Resolved ${duplicates.length} permission conflict(s) using security-first priority (deny > ask > allow)`
+      );
     }
   }
 

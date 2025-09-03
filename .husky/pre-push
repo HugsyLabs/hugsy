@@ -1,0 +1,12 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🚀 Running pre-push checks..."
+
+echo "🧪 Running all tests..."
+pnpm test || (echo "❌ Tests failed. Push aborted." && exit 1)
+
+echo "📊 Checking test coverage..."
+pnpm test:coverage || (echo "⚠️  Coverage check failed but continuing..." && true)
+
+echo "✅ All pre-push checks passed!"

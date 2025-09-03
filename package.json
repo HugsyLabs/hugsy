@@ -19,7 +19,8 @@
     "version": "changeset version && pnpm install --lockfile-only",
     "release": "turbo build && changeset publish",
     "publish:ci": "changeset publish",
-    "version:packages": "changeset version && pnpm install --lockfile-only"
+    "version:packages": "changeset version && pnpm install --lockfile-only",
+    "prepare": "husky"
   },
   "keywords": [
     "ai",
@@ -55,6 +56,8 @@
     "@vitest/ui": "^1.6.0",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6",
     "prettier": "^3.2.4",
     "tsx": "^4.20.5",
     "turbo": "^1.11.3",
@@ -67,5 +70,14 @@
   },
   "dependencies": {
     "ora": "^8.0.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{md,json,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }
