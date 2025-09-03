@@ -1,5 +1,4 @@
 #!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
 
 echo "🔒 Checking lockfile..."
 pnpm install --frozen-lockfile || (echo "❌ Lockfile is out of date. Run 'pnpm install' to update it." && exit 1)
