@@ -62,17 +62,24 @@ export function installNpmPackage(packageName: string): boolean {
   }
   
   const pm = detectPackageManager();
-  const installCmd = {
+  const cwd = process.cwd();
+  let installCmd = {
     npm: 'npm install --save-dev',
     yarn: 'yarn add --dev',
     pnpm: 'pnpm add -D'
   }[pm];
   
+  // Check if we're in a pnpm workspace and adjust command accordingly
+  if (pm === 'pnpm' && existsSync(join(cwd, 'pnpm-workspace.yaml'))) {
+    installCmd = 'pnpm add -wD'; // Add -w flag for workspace root
+    logger.info('Detected pnpm workspace, using -w flag');
+  }
+  
   try {
     logger.info(`📦 Installing ${packageName} using ${pm}...`);
     execSync(`${installCmd} ${packageName}`, {
       stdio: 'inherit',
-      cwd: process.cwd()
+      cwd: cwd
     });
     logger.success(`Package installed: ${packageName}`);
     return true;
