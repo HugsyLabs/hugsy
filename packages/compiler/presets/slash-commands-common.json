@@ -3,7 +3,7 @@
   "description": "Common slash commands for development workflows",
   "commands": {
     "dev": {
-      "content": "Start development workflow:\n\n1. Install dependencies: `pnpm install`\n2. Build all packages: `pnpm run build`\n3. Run tests: `pnpm test`\n4. Start watch mode: `pnpm run dev`\n\nCheck package build status and dependencies.",
+      "content": "Start development workflow:\n\n1. Install dependencies: `pnpm install`\n2. Build all packages: `pnpm run build`\n3. Run tests: `pnpm test`\n4. Start watch mode: Check package.json for watch/dev scripts\n\nCheck package build status and dependencies.",
       "description": "Development workflow",
       "category": "development"
     },
@@ -24,12 +24,12 @@
       "category": "development"
     },
     "build": {
-      "content": "Build all packages:\n\n1. Clean previous builds: `rm -rf packages/*/dist`\n2. Run build: `pnpm run build`\n3. Verify build outputs\n4. Report any build errors",
+      "content": "Build all packages:\n\n1. Run build: `pnpm run build`\n2. Verify build outputs\n3. Report any build errors\n\nNote: To force rebuild without cache, use `turbo run build --no-cache`",
       "description": "Build project",
       "category": "development"
     },
     "release": {
-      "content": "Prepare for releasing version $ARGUMENTS:\n\n## Pre-release Checklist\n1. Run all tests: `pnpm test`\n2. Run lint check: `pnpm lint`\n3. Build all packages: `pnpm build`\n4. Update version numbers in package.json files\n5. Update CHANGELOG.md with release notes\n\n## Release Steps\n1. Commit all changes\n2. Create and push tag: `git tag v$ARGUMENTS`\n3. Push to main branch\n4. Create GitHub release\n\nNote: Actual npm publish requires manual confirmation.",
+      "content": "Prepare for releasing version $ARGUMENTS:\n\n## Pre-release Checklist\n1. Run all tests: `pnpm test`\n2. Run lint check: `pnpm lint`\n3. Build all packages: `pnpm run build`\n4. Update version numbers in package.json files\n5. Update CHANGELOG.md with release notes\n\n## Release Steps\n1. Commit all changes\n2. Create and push tag: `git tag v$ARGUMENTS`\n3. Push to main branch\n4. Create GitHub release\n\nNote: Actual npm publish requires manual confirmation.",
       "description": "Prepare a release",
       "argumentHint": "[version]",
       "category": "release"
