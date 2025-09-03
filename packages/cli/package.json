@@ -1,6 +1,6 @@
 {
   "name": "@hugsylabs/hugsy",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "🐧 Hugsy - Configuration management for Claude Code. Transform complex settings into simple, shareable team standards.",
   "type": "module",
   "bin": {
