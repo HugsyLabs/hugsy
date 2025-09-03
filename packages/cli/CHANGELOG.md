@@ -1,5 +1,19 @@
 # @hugsylabs/hugsy
 
+## 0.1.2
+
+### Patch Changes
+
+- Update dependencies and fix deprecation warnings
+  - Update @hugsylabs/hugsy-compiler from ^0.1.3 to ^0.1.6 in CLI package
+  - Remove deprecated @types/glob dependency from compiler package (glob now includes its own types)
+  - Update @vitest/coverage-v8 to 1.6.1 to fix peer dependency warnings
+  - This includes all recent fixes for plugin loading in ESM environments
+  - Fixes issue where plugins couldn't be loaded by global hugsy installation
+
+- Updated dependencies
+  - @hugsylabs/hugsy-compiler@0.1.7
+
 ## 0.1.1
 
 ### Patch Changes
