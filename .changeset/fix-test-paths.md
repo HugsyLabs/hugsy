@@ -1,5 +1,5 @@
 ---
-'@hugsylabs/compiler': patch
+'@hugsylabs/hugsy-compiler': patch
 '@hugsylabs/hugsy': patch
 ---
 
