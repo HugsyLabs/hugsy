@@ -1,10 +1,18 @@
 {
   "extends": "@hugsylabs/hugsy-compiler/presets/development",
-  "plugins": ["./plugins/auto-format.js"],
+  "plugins": [
+    "./plugins/auto-format.js",
+    "@hugsylabs/plugin-node",
+    "@hugsylabs/plugin-git",
+    "@hugsylabs/plugin-typescript",
+    "@hugsylabs/plugin-test"
+  ],
   "env": {
     "PROJECT": "hugsy"
   },
   "commands": {
-    "presets": ["@hugsylabs/hugsy-compiler/presets/slash-commands-common"]
+    "presets": [
+      "@hugsylabs/hugsy-compiler/presets/slash-commands-common"
+    ]
   }
 }

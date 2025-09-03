@@ -731,8 +731,7 @@ export class Compiler {
   ): Promise<void> {
     try {
       // Dynamic import of glob module
-      const globModule = await import('glob');
-      const glob = globModule.glob ?? globModule.default;
+      const { glob } = await import('glob');
 
       for (const pattern of patterns) {
         const files = await glob(pattern, { cwd: this.projectRoot });
@@ -1400,14 +1399,8 @@ export class Compiler {
             return JSON.parse(content) as HugsyConfig;
           } else if (/\.ya?ml$/.exec(path)) {
             try {
-              const yamlModule = await import('yaml');
-              // Handle both yaml.parse and yaml.default.parse
-              const parse = yamlModule.parse || yamlModule.default?.parse || yamlModule.default;
-              if (typeof parse === 'function') {
-                return parse(content) as HugsyConfig;
-              } else {
-                throw new Error('YAML module does not have a parse function');
-              }
+              const { parse } = await import('yaml');
+              return parse(content) as HugsyConfig;
             } catch (error) {
               console.error('YAML support not available or parsing failed', error);
               return null;
