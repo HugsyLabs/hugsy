@@ -1,5 +1,15 @@
 # @hugsylabs/hugsy
 
+## 0.1.4
+
+### Patch Changes
+
+- 89d2d71: Improve install command UX for existing settings
+  - Change error message to warning when .claude/settings.json exists
+  - Add interactive prompt asking user if they want to overwrite
+  - Preserve --force flag for non-interactive overwrite
+  - Better user experience with clear choices
+
 ## 0.1.3
 
 ### Patch Changes
