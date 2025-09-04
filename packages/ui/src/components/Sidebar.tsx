@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   FileCode,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 import useStore from '../store';
 import { cn } from '../utils/cn';
+import { SettingsModal } from './SettingsModal';
 
 const menuItems = [
   { id: 'editor' as const, label: 'Configuration', icon: FileCode },
@@ -21,6 +23,7 @@ const menuItems = [
 
 export function Sidebar() {
   const { activeTab, setActiveTab, logs } = useStore();
+  const [showSettings, setShowSettings] = useState(false);
   
   const errorCount = logs.filter(l => l.level === 'error').length;
   const warnCount = logs.filter(l => l.level === 'warn').length;
@@ -112,12 +115,16 @@ export function Sidebar() {
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
+          onClick={() => setShowSettings(true)}
           className="w-full flex items-center justify-center px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
         >
           <Settings className="w-4 h-4 mr-2 text-gray-600 dark:text-gray-400" />
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Settings</span>
         </motion.button>
       </div>
+
+      {/* Settings Modal */}
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </aside>
   );
 }
