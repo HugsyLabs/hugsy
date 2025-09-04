@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import useStore from '../store';
 
-const pluginIcons: Record<string, any> = {
+const pluginIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   'auto-format': Code,
   '@hugsylabs/plugin-git': GitBranch,
   '@hugsylabs/plugin-node': Terminal,
@@ -28,8 +28,8 @@ export function PluginManager() {
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
-        <div className="flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 h-[60px] flex items-center">
+        <div className="flex items-center justify-between w-full">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Plugin Manager</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -37,7 +37,7 @@ export function PluginManager() {
             </p>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="px-3 py-1 bg-hugsy-100 dark:bg-hugsy-900/30 text-hugsy-700 dark:text-hugsy-400 rounded-full text-sm font-medium">
+            <span className="px-3 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-full text-sm font-medium">
               {installedPlugins.length} installed
             </span>
           </div>
@@ -54,7 +54,7 @@ export function PluginManager() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
               {installedPlugins.map((plugin) => {
-                const Icon = pluginIcons[plugin.name] || Puzzle;
+                const Icon = pluginIcons[plugin.name] ?? Puzzle;
                 
                 return (
                   <motion.div
@@ -138,7 +138,7 @@ export function PluginManager() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => installPlugin(plugin.name)}
-                  className="w-full flex items-center justify-center px-3 py-1.5 bg-hugsy-500 hover:bg-hugsy-600 text-white rounded-lg transition-colors"
+                  className="w-full flex items-center justify-center px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors"
                 >
                   <Download className="w-4 h-4 mr-1.5" />
                   <span className="text-sm font-medium">Install</span>
@@ -161,7 +161,7 @@ export function PluginManager() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-hugsy-500 text-white rounded-lg hover:bg-hugsy-600 transition-colors"
+              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
             >
               Plugin Documentation
             </motion.button>

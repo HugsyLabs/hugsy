@@ -4,6 +4,7 @@
 
 // Claude Code Settings types
 export interface ClaudeSettings {
+  $schema?: string;
   permissions?: PermissionSettings;
   hooks?: HookSettings;
   env?: Record<string, string>;
@@ -45,7 +46,8 @@ export interface HookConfig {
 export interface StatusLineConfig {
   type: 'command' | 'static';
   command?: string;
-  text?: string;
+  value?: string;  // For static type
+  text?: string;   // Deprecated, kept for backward compatibility
 }
 
 // Slash Commands types

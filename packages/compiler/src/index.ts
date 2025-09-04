@@ -56,6 +56,129 @@ export class Compiler {
   }
 
   /**
+   * Validate generated settings.json format for Claude Code compatibility
+   */
+  public validateSettings(settings: ClaudeSettings): string[] {
+    const errors: string[] = [];
+    
+    // Validate $schema field
+    if (!settings.$schema) {
+      errors.push('Missing required $schema field');
+    } else if (settings.$schema !== 'https://json.schemastore.org/claude-code-settings.json') {
+      errors.push('Invalid $schema value, must be https://json.schemastore.org/claude-code-settings.json');
+    }
+    
+    // Validate permissions format
+    if (settings.permissions) {
+      const validPermissionPattern = /^[A-Z][a-zA-Z]*(\(.*\))?$/;
+      
+      ['allow', 'ask', 'deny'].forEach(type => {
+        const perms = settings.permissions?.[type as keyof PermissionSettings];
+        if (perms && Array.isArray(perms)) {
+          perms.forEach(perm => {
+            if (!validPermissionPattern.test(perm)) {
+              errors.push(`Invalid permission format in ${type}: "${perm}". Must match Tool or Tool(pattern)`);
+            }
+          });
+        }
+      });
+    }
+    
+    // Validate hooks format
+    if (settings.hooks) {
+      for (const [hookType, hookConfigs] of Object.entries(settings.hooks)) {
+        if (!Array.isArray(hookConfigs)) {
+          errors.push(`Hooks.${hookType} must be an array`);
+          continue;
+        }
+        
+        hookConfigs.forEach((hook, index) => {
+          // Check if matcher is present
+          if (!hook.matcher) {
+            errors.push(`Hooks.${hookType}[${index}] missing required 'matcher' field`);
+          } else {
+            // Validate matcher format - should be tool name only, not with arguments
+            if (hook.matcher.includes('(')) {
+              errors.push(`Hooks.${hookType}[${index}].matcher "${hook.matcher}" should be tool name only (e.g., "Bash" not "Bash(git *)")`);
+            }
+          }
+          
+          // Check if hooks array is present
+          if (!hook.hooks || !Array.isArray(hook.hooks)) {
+            errors.push(`Hooks.${hookType}[${index}] missing required 'hooks' array`);
+          } else {
+            // Validate each hook in the array
+            hook.hooks.forEach((h, hIndex) => {
+              if (!h.type) {
+                errors.push(`Hooks.${hookType}[${index}].hooks[${hIndex}] missing required 'type' field`);
+              } else if (h.type !== 'command') {
+                errors.push(`Hooks.${hookType}[${index}].hooks[${hIndex}].type must be "command", got "${h.type}"`);
+              }
+              
+              if (!h.command) {
+                errors.push(`Hooks.${hookType}[${index}].hooks[${hIndex}] missing required 'command' field`);
+              }
+              
+              if (h.timeout !== undefined && typeof h.timeout !== 'number') {
+                errors.push(`Hooks.${hookType}[${index}].hooks[${hIndex}].timeout must be a number`);
+              }
+            });
+          }
+        });
+      }
+    }
+    
+    // Validate environment variables
+    if (settings.env) {
+      for (const [key, value] of Object.entries(settings.env)) {
+        if (typeof value !== 'string') {
+          errors.push(`Environment variable '${key}' must be a string, got ${typeof value}`);
+        }
+      }
+    }
+    
+    // Validate statusLine
+    if (settings.statusLine) {
+      if (!settings.statusLine.type || !['command', 'static'].includes(settings.statusLine.type)) {
+        errors.push(`statusLine.type must be 'command' or 'static', got '${settings.statusLine.type}'`);
+      }
+      
+      if (settings.statusLine.type === 'command' && !settings.statusLine.command) {
+        errors.push('statusLine.command is required when type is "command"');
+      }
+      
+      if (settings.statusLine.type === 'static' && !settings.statusLine.value) {
+        errors.push('statusLine.value is required when type is "static"');
+      }
+    }
+    
+    // Validate optional numeric fields
+    if (settings.cleanupPeriodDays !== undefined && typeof settings.cleanupPeriodDays !== 'number') {
+      errors.push(`cleanupPeriodDays must be a number, got ${typeof settings.cleanupPeriodDays}`);
+    }
+    
+    // Validate boolean fields
+    if (settings.includeCoAuthoredBy !== undefined && typeof settings.includeCoAuthoredBy !== 'boolean') {
+      errors.push(`includeCoAuthoredBy must be a boolean, got ${typeof settings.includeCoAuthoredBy}`);
+    }
+    
+    if (settings.enableAllProjectMcpServers !== undefined && typeof settings.enableAllProjectMcpServers !== 'boolean') {
+      errors.push(`enableAllProjectMcpServers must be a boolean, got ${typeof settings.enableAllProjectMcpServers}`);
+    }
+    
+    // Validate array fields
+    if (settings.enabledMcpjsonServers && !Array.isArray(settings.enabledMcpjsonServers)) {
+      errors.push('enabledMcpjsonServers must be an array');
+    }
+    
+    if (settings.disabledMcpjsonServers && !Array.isArray(settings.disabledMcpjsonServers)) {
+      errors.push('disabledMcpjsonServers must be an array');
+    }
+    
+    return errors;
+  }
+
+  /**
    * Main compile function - transforms .hugsyrc to Claude settings.json
    */
   async compile(config: HugsyConfig): Promise<ClaudeSettings> {
@@ -202,12 +325,17 @@ export class Compiler {
 
     // Build the final settings using transformed config
     const settings: ClaudeSettings = {
+      $schema: 'https://json.schemastore.org/claude-code-settings.json',
       permissions: this.compilePermissions(transformedConfig),
       hooks: this.compileHooks(transformedConfig),
       env: this.compileEnvironment(transformedConfig),
-      model: transformedConfig.model,
-      statusLine: this.validateStatusLine(transformedConfig.statusLine),
-      // Only include these fields if they are explicitly set
+      // Only include optional fields if they are explicitly set
+      ...(transformedConfig.model !== undefined && {
+        model: transformedConfig.model,
+      }),
+      ...(transformedConfig.statusLine !== undefined && {
+        statusLine: this.validateStatusLine(transformedConfig.statusLine),
+      }),
       ...(transformedConfig.includeCoAuthoredBy !== undefined && {
         includeCoAuthoredBy: transformedConfig.includeCoAuthoredBy,
       }),
@@ -259,6 +387,19 @@ export class Compiler {
       } else {
         console.warn('⚠️  Configuration validation warnings:');
         validationErrors.forEach((error) => console.warn(`  - ${error}`));
+      }
+    }
+
+    // Validate the generated settings
+    const settingsValidationErrors = this.validateSettings(settings);
+    if (settingsValidationErrors.length > 0) {
+      if (this.options.throwOnError) {
+        throw new CompilerError('Generated settings.json validation failed', {
+          errors: settingsValidationErrors
+        });
+      } else {
+        console.warn('⚠️  Generated settings.json validation warnings:');
+        settingsValidationErrors.forEach(error => console.warn(`  - ${error}`));
       }
     }
 
@@ -393,7 +534,7 @@ export class Compiler {
 
       const invalid = list.filter((p) => !validPattern.test(p));
       if (invalid.length > 0) {
-        throw new CompilerError(
+        this.handleError(
           `Invalid permission format in ${type}: ${invalid.join(', ')}. Permissions must match pattern: Tool or Tool(pattern)`
         );
       }
@@ -666,7 +807,95 @@ export class Compiler {
       this.mergeHooks(hooks, config.hooks);
     }
 
-    return hooks;
+    // Convert all hooks to Claude Code expected format
+    return this.normalizeHooksForClaude(hooks);
+  }
+
+  /**
+   * Convert hooks to Claude Code expected format
+   * Transforms simple {matcher, command} format to {matcher, hooks: [{type, command, timeout}]}
+   * IMPORTANT: Merges all hooks with the same matcher into a single entry per Claude Code docs
+   * IMPORTANT: Converts "Tool(args)" format to just "Tool" as Claude Code only supports tool-level matching
+   */
+  private normalizeHooksForClaude(hooks: HookSettings): HookSettings {
+    const normalized: HookSettings = {};
+    
+    for (const [hookType, hookConfigs] of Object.entries(hooks)) {
+      if (!hookConfigs) continue;
+      
+      const hookArray = Array.isArray(hookConfigs) ? hookConfigs : [hookConfigs];
+      
+      // Use a Map to group hooks by matcher
+      const matcherGroups = new Map<string, Array<{type: 'command', command: string, timeout: number}>>();
+      
+      for (const hook of hookArray) {
+        if (typeof hook === 'string') {
+          // String hook - shouldn't happen but handle it
+          continue;
+        }
+        
+        let matcher = '*'; // Default matcher for all tools
+        let commands: Array<{type: 'command', command: string, timeout: number}> = [];
+        
+        // Check if it's already in correct format with hooks array
+        if (hook.hooks && Array.isArray(hook.hooks)) {
+          matcher = this.normalizeMatcherFormat(hook.matcher || '*');
+          commands = hook.hooks.map(h => {
+            if (typeof h === 'object' && 'command' in h) {
+              return {
+                type: 'command' as const,
+                command: h.command,
+                timeout: h.timeout || 3000
+              };
+            }
+            // If it's already properly formatted, keep it
+            return h as {type: 'command', command: string, timeout: number};
+          });
+        } else if (hook.command) {
+          // Simple format - convert to Claude Code format
+          matcher = this.normalizeMatcherFormat(hook.matcher || '*');
+          commands = [{
+            type: 'command' as const,
+            command: hook.command,
+            timeout: hook.timeout || 3000
+          }];
+        }
+        
+        // Add commands to the matcher group
+        if (!matcherGroups.has(matcher)) {
+          matcherGroups.set(matcher, []);
+        }
+        matcherGroups.get(matcher)!.push(...commands);
+      }
+      
+      // Convert the Map to the final array format
+      normalized[hookType] = Array.from(matcherGroups.entries()).map(([matcher, commands]) => ({
+        matcher,
+        hooks: commands
+      }));
+    }
+    
+    return normalized;
+  }
+
+  /**
+   * Normalize matcher format from "Tool(args)" to "Tool"
+   * Claude Code only supports tool-level matching, not argument patterns
+   */
+  private normalizeMatcherFormat(matcher: string): string {
+    // Handle common patterns
+    if (matcher === '.*' || matcher === '') {
+      return '*'; // Use * for all tools per Claude Code docs
+    }
+    
+    // Extract tool name from "Tool(args)" format
+    const match = matcher.match(/^([A-Za-z]+)\(/);
+    if (match) {
+      return match[1]; // Return just the tool name
+    }
+    
+    // If it's already a simple tool name or pattern, return as is
+    return matcher;
   }
 
   /**

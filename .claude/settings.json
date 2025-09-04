@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "Read(**)",
@@ -12,126 +13,24 @@
       "Bash(npm run *)",
       "Bash(pnpm *)",
       "Bash(prettier *)",
-      "Bash(eslint * --fix)",
-      "Bash(node *)",
-      "Bash(npm *)",
-      "Bash(yarn *)",
-      "Bash(npx *)",
-      "Write(**)",
-      "Edit(**)",
-      "Bash(gh *)",
-      "Write(**/.git*)",
-      "Write(**/CODEOWNERS)",
-      "Bash(tsc *)",
-      "Bash(tsx *)",
-      "Bash(ts-node *)",
-      "Write(**/*.tsx)",
-      "Write(**/*.d.ts)",
-      "Write(**/tsconfig*.json)",
-      "Write(**/@types/**)",
-      "Bash(npm test*)",
-      "Bash(yarn test*)",
-      "Bash(pnpm test*)",
-      "Bash(jest *)",
-      "Bash(vitest *)",
-      "Bash(mocha *)",
-      "Bash(pytest *)",
-      "Bash(go test *)",
-      "Bash(cargo test *)",
-      "Write(**/*.test.*)",
-      "Write(**/*.spec.*)",
-      "Write(**/__tests__/**)",
-      "Write(**/tests/**)"
+      "Bash(eslint * --fix)"
     ],
     "ask": [
       "Bash(npm publish)",
       "Write(**/.github/**)",
-      "Write(**/package.json)",
-      "Bash(npm install -g *)",
-      "Bash(rm -rf node_modules)",
-      "Bash(git push --force *)",
-      "Bash(git reset --hard *)",
-      "Bash(git rebase *)",
-      "Bash(rm -rf coverage)"
+      "Write(**/package.json)"
     ],
     "deny": [
       "Write(**/node_modules/**)",
       "Write(**/.git/**)",
       "Write(**/dist/**)",
       "Bash(rm -rf /)",
-      "Bash(sudo *)",
-      "Bash(npm login)",
-      "Bash(git push --force origin main)",
-      "Bash(git push --force origin master)"
+      "Bash(sudo *)"
     ]
   },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash(npm install)",
-        "command": "test -f package-lock.json || echo \"⚠️ No package-lock.json found. Consider using npm ci for reproducible installs.\""
-      },
-      {
-        "matcher": "Bash(git commit *)",
-        "command": "npm run lint --if-present || yarn lint --if-present || pnpm lint --if-present || true"
-      },
-      {
-        "matcher": "Bash(git push *)",
-        "command": "npm test --if-present || yarn test --if-present || pnpm test --if-present || true"
-      },
-      {
-        "matcher": "Bash(git commit *)",
-        "command": "git rev-parse --abbrev-ref HEAD | grep -E \"^(main|master)$\" && echo \"⚠️ Warning: Committing directly to main/master branch\" || true"
-      },
-      {
-        "matcher": "Bash(git add *)",
-        "command": "find . -size +100M -type f 2>/dev/null | grep -v node_modules | head -5 | xargs -I {} echo \"⚠️ Large file detected: {}\""
-      },
-      {
-        "matcher": "Bash(git commit *)",
-        "command": "tsc --noEmit || echo \"⚠️ TypeScript errors found. Fix them before committing.\""
-      },
-      {
-        "matcher": "Bash(git push *)",
-        "command": "npm test --if-present || yarn test --if-present || pnpm test --if-present || echo \"⚠️ No tests found\""
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Write(**/package.json)",
-        "command": "npm install || yarn install || pnpm install"
-      },
-      {
-        "matcher": "Bash(npm install)",
-        "command": "echo \"🔒 Consider running npm audit to check for vulnerabilities.\""
-      },
-      {
-        "matcher": "Bash(git commit *)",
-        "command": "echo \"💡 Remember to push your changes when ready: git push\""
-      },
-      {
-        "matcher": "Bash(git push *)",
-        "command": "echo \"✅ Changes pushed. Consider creating a pull request if working on a feature branch.\""
-      },
-      {
-        "matcher": "Write(**/*.ts)",
-        "command": "tsc --noEmit --incremental || true"
-      },
-      {
-        "matcher": "Bash(*test*)",
-        "command": "test -d coverage && echo \"📊 Coverage report generated in ./coverage\" || true"
-      },
-      {
-        "matcher": "Write(**/*.{js,ts,py})",
-        "command": "echo \"💡 Remember to write tests for your new code\""
-      }
-    ]
-  },
+  "hooks": {},
   "env": {
     "NODE_ENV": "development",
-    "PROJECT": "hugsy",
-    "NODE_OPTIONS": "--max-old-space-size=4096",
-    "TS_NODE_PROJECT": "./tsconfig.json",
-    "TS_NODE_TRANSPILE_ONLY": "true"
+    "PROJECT": "hugsy"
   }
 }

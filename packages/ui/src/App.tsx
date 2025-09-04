@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { ConfigEditor } from './components/ConfigEditor';
 import { LogViewer } from './components/LogViewer';
 import { Sidebar } from './components/Sidebar';
-import { Header } from './components/Header';
 import { PresetManager } from './components/PresetManager';
 import { PluginManager } from './components/PluginManager';
+import { SlashCommands } from './components/SlashCommands';
 import useStore from './store';
 
 function App() {
@@ -13,7 +14,7 @@ function App() {
 
   useEffect(() => {
     // Apply theme
-    if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
@@ -24,6 +25,8 @@ function App() {
     switch (activeTab) {
       case 'editor':
         return <ConfigEditor />;
+      case 'commands':
+        return <SlashCommands />;
       case 'presets':
         return <PresetManager />;
       case 'plugins':
@@ -44,59 +47,54 @@ function App() {
         }} />
       </div>
 
-      <div className="relative flex h-screen">
-        {/* Sidebar */}
-        <Sidebar />
+      <div className="relative h-screen">
+        <PanelGroup direction="horizontal" className="h-full">
+          {/* Sidebar Panel */}
+          <Panel defaultSize={15} minSize={12} maxSize={20}>
+            <Sidebar />
+          </Panel>
+          
+          {/* Resize Handle */}
+          <PanelResizeHandle className="w-1 bg-gray-200 dark:bg-gray-800 hover:bg-blue-500 dark:hover:bg-blue-400 transition-colors" />
+          
+          {/* Main Content Panel */}
+          <Panel defaultSize={85} minSize={40}>
+            <div className="h-full flex flex-col overflow-hidden">
+              {/* Content Area with Animation */}
+              <main className="flex-1 overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.2 }}
+                    className="h-full"
+                  >
+                    {renderContent()}
+                  </motion.div>
+                </AnimatePresence>
+              </main>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
-          <Header />
-
-          {/* Content Area with Animation */}
-          <main className="flex-1 overflow-hidden">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-                className="h-full"
-              >
-                {renderContent()}
-              </motion.div>
-            </AnimatePresence>
-          </main>
-
-          {/* Status Bar */}
-          <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-4 py-2">
-            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-              <div className="flex items-center space-x-4">
-                <span className="flex items-center">
-                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                  Ready
-                </span>
-                <span>Hugsy v0.1.0</span>
-              </div>
-              <div className="flex items-center space-x-4">
-                <span>UTF-8</span>
-                <span>TypeScript React</span>
+              {/* Status Bar */}
+              <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-4 py-2">
+                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center space-x-4">
+                    <span className="flex items-center">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                      Ready
+                    </span>
+                    <span>Hugsy v0.1.0</span>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <span>UTF-8</span>
+                    <span>TypeScript React</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Floating Log Panel (when not in logs tab) */}
-        {activeTab !== 'logs' && (
-          <motion.div
-            initial={{ x: 400 }}
-            animate={{ x: 0 }}
-            className="w-96 border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
-          >
-            <LogViewer />
-          </motion.div>
-        )}
+          </Panel>
+        </PanelGroup>
       </div>
     </div>
   );

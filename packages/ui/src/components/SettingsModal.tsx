@@ -4,10 +4,8 @@ import {
   X, 
   Moon, 
   Sun, 
-  Laptop,
   Palette,
   Code,
-  FileJson,
   Terminal,
   Zap,
   Shield
@@ -36,12 +34,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       label: 'Dark', 
       icon: Moon,
       preview: 'bg-gray-900 border-gray-700'
-    },
-    { 
-      value: 'system' as const, 
-      label: 'System', 
-      icon: Laptop,
-      preview: 'bg-gradient-to-r from-white to-gray-900'
     },
   ];
 
@@ -101,7 +93,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           className={cn(
                             "w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                             activeTab === tab.id
-                              ? "bg-hugsy-100 dark:bg-hugsy-900/20 text-hugsy-700 dark:text-hugsy-400"
+                              ? "bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400"
                               : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                           )}
                         >
@@ -128,7 +120,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">
                             Theme
                           </h3>
-                          <div className="grid grid-cols-3 gap-4">
+                          <div className="grid grid-cols-2 gap-4">
                             {themes.map((t) => {
                               const Icon = t.icon;
                               const isActive = theme === t.value;
@@ -142,7 +134,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                   className={cn(
                                     "relative p-4 rounded-lg border-2 transition-all",
                                     isActive
-                                      ? "border-hugsy-500 shadow-lg"
+                                      ? "border-primary-500 shadow-lg"
                                       : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                                   )}
                                 >
@@ -150,7 +142,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                     <motion.div
                                       initial={{ scale: 0 }}
                                       animate={{ scale: 1 }}
-                                      className="absolute top-2 right-2 w-5 h-5 bg-hugsy-500 rounded-full flex items-center justify-center"
+                                      className="absolute top-2 right-2 w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center"
                                     >
                                       <Shield className="w-3 h-3 text-white" />
                                     </motion.div>
@@ -204,7 +196,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             <input
                               type="checkbox"
                               defaultChecked
-                              className="w-4 h-4 text-hugsy-600 bg-gray-100 border-gray-300 rounded focus:ring-hugsy-500 dark:focus:ring-hugsy-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                              className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                             />
                             <span className="text-sm text-gray-700 dark:text-gray-300">
                               Enable animations
@@ -254,7 +246,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               <input
                                 type="checkbox"
                                 defaultChecked
-                                className="w-4 h-4 text-hugsy-600 bg-gray-100 border-gray-300 rounded"
+                                className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded"
                               />
                               <span className="text-sm text-gray-700 dark:text-gray-300">
                                 Word wrap
@@ -265,7 +257,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               <input
                                 type="checkbox"
                                 defaultChecked
-                                className="w-4 h-4 text-hugsy-600 bg-gray-100 border-gray-300 rounded"
+                                className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded"
                               />
                               <span className="text-sm text-gray-700 dark:text-gray-300">
                                 Format on paste
@@ -293,7 +285,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               <input
                                 type="checkbox"
                                 defaultChecked
-                                className="w-4 h-4 text-hugsy-600 bg-gray-100 border-gray-300 rounded"
+                                className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded"
                               />
                               <span className="text-sm text-gray-700 dark:text-gray-300">
                                 Verbose logging
@@ -303,7 +295,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             <label className="flex items-center space-x-3">
                               <input
                                 type="checkbox"
-                                className="w-4 h-4 text-hugsy-600 bg-gray-100 border-gray-300 rounded"
+                                className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded"
                               />
                               <span className="text-sm text-gray-700 dark:text-gray-300">
                                 Throw on error
@@ -314,7 +306,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               <input
                                 type="checkbox"
                                 defaultChecked
-                                className="w-4 h-4 text-hugsy-600 bg-gray-100 border-gray-300 rounded"
+                                className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded"
                               />
                               <span className="text-sm text-gray-700 dark:text-gray-300">
                                 Auto-compile on change
@@ -370,7 +362,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={onClose}
-                    className="px-4 py-2 text-sm font-medium text-white bg-hugsy-500 rounded-lg hover:bg-hugsy-600 transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors"
                   >
                     Save Changes
                   </motion.button>

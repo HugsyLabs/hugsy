@@ -82,7 +82,7 @@ describe('Compiler', () => {
         },
         statusLine: {
           type: 'static' as const,
-          text: 'test status',
+          value: 'test status',
         },
       };
 
@@ -90,7 +90,7 @@ describe('Compiler', () => {
 
       expect(result.statusLine).toEqual({
         type: 'static',
-        text: 'test status',
+        value: 'test status',
       });
     });
 
@@ -1720,7 +1720,7 @@ export default {
         const config = {
           StatusLine: {
             type: 'static',
-            text: 'Test Status',
+            value: 'Test Status',
           },
         } as HugsyConfig;
 
@@ -1728,7 +1728,7 @@ export default {
 
         expect(result.statusLine).toEqual({
           type: 'static',
-          text: 'Test Status',
+          value: 'Test Status',
         });
       });
     });

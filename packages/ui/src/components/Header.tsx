@@ -2,7 +2,6 @@ import { motion } from 'framer-motion';
 import { 
   Moon, 
   Sun, 
-  Laptop, 
   Play, 
   Download,
   Upload,
@@ -37,33 +36,13 @@ export function Header() {
   const themeIcons = {
     light: Sun,
     dark: Moon,
-    system: Laptop,
   };
 
   const Icon = themeIcons[theme];
 
   return (
     <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-      <div className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center space-x-4">
-          <motion.div 
-            className="flex items-center space-x-3"
-            whileHover={{ scale: 1.02 }}
-          >
-            <div className="w-10 h-10 bg-gradient-to-br from-hugsy-400 to-hugsy-600 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-xl">H</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Hugsy Configuration Studio
-              </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Visual configuration for Claude Code
-              </p>
-            </div>
-          </motion.div>
-        </div>
-
+      <div className="flex items-center justify-end px-6 py-3">
         <div className="flex items-center space-x-2">
           {/* Layout Toggle */}
           <motion.button
@@ -107,13 +86,13 @@ export function Header() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={compile}
+            onClick={() => void compile()}
             disabled={isCompiling}
             className={cn(
               "flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all",
               isCompiling
-                ? "bg-hugsy-300 dark:bg-hugsy-700 cursor-wait"
-                : "bg-gradient-to-r from-hugsy-500 to-hugsy-600 hover:from-hugsy-600 hover:to-hugsy-700 text-white shadow-lg"
+                ? "bg-primary-300 dark:bg-primary-700 cursor-wait"
+                : "bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg"
             )}
           >
             {isCompiling ? (
@@ -134,7 +113,7 @@ export function Header() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                const themes: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system'];
+                const themes: ('light' | 'dark')[] = ['light', 'dark'];
                 const currentIndex = themes.indexOf(theme);
                 const nextIndex = (currentIndex + 1) % themes.length;
                 setTheme(themes[nextIndex]);

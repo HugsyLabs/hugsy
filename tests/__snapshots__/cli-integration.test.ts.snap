@@ -11,6 +11,7 @@ exports[`Hugsy CLI Integration Tests > Configuration Initialization > should ini
 
 exports[`Hugsy CLI Integration Tests > Installation Process > should install successfully > install-compiled-settings 1`] = `
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "NODE_ENV": "development",
   },
