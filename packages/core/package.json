@@ -9,7 +9,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && cp -r presets dist/",
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest --watch",
