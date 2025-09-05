@@ -79,7 +79,7 @@ importers:
   packages/cli:
     dependencies:
       '@hugsylabs/hugsy-core':
-        specifier: ^0.1.9
+        specifier: ^0.2.0
         version: link:../core
       '@hugsylabs/hugsy-types':
         specifier: ^0.0.7
@@ -134,7 +134,7 @@ importers:
   packages/ui:
     dependencies:
       '@hugsylabs/hugsy-core':
-        specifier: workspace:^0.1.9
+        specifier: workspace:^0.2.0
         version: link:../core
       '@monaco-editor/react':
         specifier: ^4.7.0

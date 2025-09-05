@@ -1,6 +1,6 @@
 {
   "name": "@hugsylabs/hugsy-core",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Core functionality for Hugsy - Configuration management for Claude Code",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
