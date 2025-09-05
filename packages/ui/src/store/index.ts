@@ -30,6 +30,8 @@ interface AppState {
   config: HugsyConfig;
   compiledSettings: Record<string, unknown> | null;
   compiledCommands: Record<string, { content: string; category?: string }> | null;
+  existingSettings: Record<string, unknown> | null;
+  hasExistingSettings: boolean;
   isCompiling: boolean;
   isInstalling: boolean;
   compilationError: string | null;
@@ -51,6 +53,7 @@ interface AppState {
   // Actions
   setConfig: (config: HugsyConfig) => void;
   updateConfig: (updates: Partial<HugsyConfig>) => void;
+  loadExistingSettings: () => Promise<void>;
   compile: () => Promise<void>;
   installSettings: (force?: boolean) => Promise<void>;
   addLog: (entry: Omit<LogEntry, 'id' | 'timestamp'>) => void;
@@ -87,6 +90,8 @@ const useStore = create<AppState>()(
       },
       compiledSettings: null,
       compiledCommands: null,
+      existingSettings: null,
+      hasExistingSettings: false,
       isCompiling: false,
       isInstalling: false,
       compilationError: null,
@@ -125,6 +130,32 @@ const useStore = create<AppState>()(
           config: { ...state.config, ...updates },
         })),
 
+      loadExistingSettings: async () => {
+        try {
+          const result = await api.getSettings();
+          set({
+            existingSettings: result.settings,
+            hasExistingSettings: result.exists,
+            // If settings exist, also set them as compiledSettings for display
+            compiledSettings: result.settings,
+          });
+
+          if (result.exists) {
+            const { addLog } = get();
+            addLog({
+              level: 'info',
+              message: 'Loaded existing .claude/settings.json',
+            });
+          }
+        } catch (error) {
+          const { addLog } = get();
+          addLog({
+            level: 'error',
+            message: `Failed to load existing settings: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          });
+        }
+      },
+
       compile: async () => {
         set({ isCompiling: true, compilationError: null });
         const { addLog } = get();
@@ -159,7 +190,7 @@ const useStore = create<AppState>()(
           } else {
             set({
               compiledSettings: result.settings,
-              compiledCommands: {}, // Commands are compiled separately
+              compiledCommands: result.commands ?? {}, // Use commands from compilation result
               isCompiling: false,
             });
             addLog({ level: 'success', message: 'Compilation completed successfully!' });
@@ -187,12 +218,26 @@ const useStore = create<AppState>()(
 
           const result = await api.installSettings(force);
 
+          // Check if installation needs force option
+          const needsForce =
+            (result.error &&
+              (result.error.includes('already exists') || result.error.includes('Use force'))) ??
+            (result.output &&
+              (result.output.includes('already has .claude/settings.json') ||
+                result.output.includes('Use --force to overwrite')));
+
+          // If needs force and not using force, show dialog
+          if (needsForce && !force) {
+            addLog({
+              level: 'warn',
+              message: 'Settings file already exists. Use force option to overwrite.',
+            });
+            set({ isInstalling: false, showForceInstallDialog: true });
+            return;
+          }
+
           // Log the output from hugsy install
           if (result.output) {
-            const needsForce =
-              result.output.includes('already has .claude/settings.json') ||
-              result.output.includes('Use --force to overwrite');
-
             result.output.split('\n').forEach((line) => {
               if (line.trim()) {
                 // Parse the output to determine log level
@@ -207,16 +252,10 @@ const useStore = create<AppState>()(
                 }
               }
             });
-
-            // If needs force and not using force, show dialog
-            if (needsForce && !force) {
-              set({ isInstalling: false, showForceInstallDialog: true });
-              return;
-            }
           }
 
-          if (result.error) {
-            addLog({ level: 'warn', message: result.error });
+          if (result.error && !needsForce) {
+            addLog({ level: 'error', message: result.error });
           }
 
           if (result.settings) {

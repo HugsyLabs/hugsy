@@ -3,34 +3,27 @@
  */
 
 import { Command } from 'commander';
-import { writeFileSync, existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import chalk from 'chalk';
 import prompts from 'prompts';
 import { logger } from '../utils/logger.js';
 import { ProjectConfig } from '../utils/project-config.js';
-import { Compiler } from '@hugsylabs/hugsy-compiler';
-import type { HugsyConfig } from '@hugsylabs/hugsy-compiler';
+import { Compiler, ConfigManager } from '@hugsylabs/hugsy-core';
+import type { HugsyConfig } from '@hugsylabs/hugsy-core';
 
-// Available presets
-const presets = {
-  recommended: {
-    name: 'Recommended',
-    description: 'Best practices for secure and reliable code generation',
+// Get presets from ConfigManager
+const availablePresets = ConfigManager.getAvailablePresets();
+const presets = availablePresets.reduce(
+  (acc, preset) => {
+    acc[preset.name] = {
+      name: preset.name.charAt(0).toUpperCase() + preset.name.slice(1),
+      description: preset.description,
+    };
+    return acc;
   },
-  security: {
-    name: 'Security-focused',
-    description: 'Strict security controls to prevent sensitive data exposure',
-  },
-  permissive: {
-    name: 'Permissive',
-    description: 'Allow most actions, only block dangerous operations',
-  },
-  custom: {
-    name: 'Custom',
-    description: 'Create your own configuration',
-  },
-};
+  {} as Record<string, { name: string; description: string }>
+);
 
 export function initCommand(): Command {
   const command = new Command('init');
@@ -82,16 +75,24 @@ export function initCommand(): Command {
           preset = response.preset;
         }
 
+        // Use ConfigManager to create and write configuration
+        const configManager = new ConfigManager({ projectRoot: process.cwd() });
+
         // Create configuration based on preset
         if (preset === 'custom') {
           config = await createCustomConfig();
+          // Write custom config using ConfigManager
+          configManager.write(config);
         } else {
-          config = getPresetConfig(preset);
+          // Use ConfigManager's init method for standard presets
+          const success = configManager.init({ force: options.force, preset });
+          if (!success) {
+            logger.error('Failed to initialize configuration');
+            return;
+          }
+          // Read back the config for display
+          config = configManager.read() ?? configManager.createDefault({ preset });
         }
-
-        // Write configuration
-        const configPath = join(process.cwd(), '.hugsyrc.json');
-        writeFileSync(configPath, JSON.stringify(config, null, 2));
 
         logger.success('Created .hugsyrc.json');
 
@@ -113,7 +114,7 @@ export function initCommand(): Command {
         if (options.install !== false) {
           logger.divider();
           logger.section('Installing Configuration');
-          
+
           try {
             // Compile the configuration
             const compiler = new Compiler({
@@ -121,19 +122,19 @@ export function initCommand(): Command {
               verbose: false,
             });
             const compiledSettings = await compiler.compile(config);
-            
+
             // Create .claude directory
             const claudeDir = join(process.cwd(), '.claude');
             if (!existsSync(claudeDir)) {
               mkdirSync(claudeDir, { recursive: true });
               logger.success('Created .claude directory');
             }
-            
+
             // Write compiled settings
             const settingsPath = join(claudeDir, 'settings.json');
             writeFileSync(settingsPath, JSON.stringify(compiledSettings, null, 2));
             logger.success('Created .claude/settings.json');
-            
+
             // Success message
             logger.divider();
             logger.success('Hugsy initialized and installed successfully!');
@@ -226,7 +227,7 @@ async function createCustomConfig(): Promise<HugsyConfig> {
 
   // Start with recommended base if requested
   if (responses.useRecommended) {
-    config.extends = '@hugsy/recommended';
+    config.extends = '@hugsylabs/hugsy-core/presets/recommended';
   }
 
   // Add permissions
@@ -259,51 +260,4 @@ async function createCustomConfig(): Promise<HugsyConfig> {
   }
 
   return config;
-}
-
-/**
- * Get preset configuration
- */
-function getPresetConfig(name: string): HugsyConfig {
-  const configs: Record<string, HugsyConfig> = {
-    recommended: {
-      extends: '@hugsy/recommended',
-      env: {
-        NODE_ENV: 'development',
-      },
-    },
-    security: {
-      extends: '@hugsy/strict',
-      permissions: {
-        deny: [
-          'Write(*:*password=*)',
-          'Write(*:*secret=*)',
-          'Write(*:*api_key=*)',
-          'Write(*:*token=*)',
-          'Read(**/.env*)',
-          'Read(**/secrets/**)',
-          'Bash(curl *)',
-          'Bash(wget *)',
-          'WebSearch(*)',
-        ],
-        ask: ['Bash(sudo *)', 'Bash(npm *)', 'Bash(pip *)', 'Write(**)'],
-      },
-      env: {
-        NODE_ENV: 'production',
-        STRICT_MODE: 'true',
-      },
-    },
-    permissive: {
-      extends: '@hugsy/development',
-      permissions: {
-        deny: [
-          'Bash(rm -rf /*)',
-          'Bash(:(){ :|:& };:)', // Fork bomb
-        ],
-        allow: ['Read(**)', 'Write(**)', 'Bash(*)'],
-      },
-    },
-  };
-
-  return configs[name] || configs.recommended;
 }

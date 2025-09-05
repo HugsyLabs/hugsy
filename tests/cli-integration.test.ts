@@ -140,7 +140,9 @@ describe('Hugsy CLI Integration Tests', () => {
       const configPath = join(testDir, '.hugsyrc.json');
       const config = assertJsonContent(
         configPath,
-        (c) => c.extends === '@hugsy/recommended' && c.env?.NODE_ENV === 'development',
+        (c) =>
+          c.extends === '@hugsylabs/hugsy-core/presets/recommended' &&
+          c.env?.NODE_ENV === 'development',
         'Config has correct structure'
       );
 

@@ -12,7 +12,14 @@ export default [
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: './tsconfig.eslint.json',
+        project: [
+          './tsconfig.json',
+          './packages/cli/tsconfig.json',
+          './packages/core/tsconfig.json',
+          './packages/types/tsconfig.json',
+          './packages/ui/tsconfig.json',
+          './tests/tsconfig.json',
+        ],
         tsconfigRootDir: import.meta.dirname,
       },
       globals: {

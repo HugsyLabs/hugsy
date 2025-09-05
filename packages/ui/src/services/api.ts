@@ -1,6 +1,47 @@
 const API_BASE = 'http://localhost:3001/api';
 
 export const api = {
+  // Check if configuration exists
+  async checkConfigExists(): Promise<boolean> {
+    const response = await fetch(`${API_BASE}/config/exists`);
+    const data = await response.json();
+    return data.exists;
+  },
+
+  // Get available presets
+  async getPresets(): Promise<{ name: string; description: string }[]> {
+    const response = await fetch(`${API_BASE}/presets`);
+    const data = await response.json();
+    return data.presets;
+  },
+
+  // Initialize configuration with preset
+  async initConfig(
+    preset: string,
+    force = false
+  ): Promise<{
+    success: boolean;
+    config?: Record<string, unknown>;
+    error?: string;
+    message?: string;
+  }> {
+    const response = await fetch(`${API_BASE}/init`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preset, force }),
+    });
+    return response.json();
+  },
+
+  // Get existing .claude/settings.json
+  async getSettings(): Promise<{
+    settings: Record<string, unknown> | null;
+    exists: boolean;
+  }> {
+    const response = await fetch(`${API_BASE}/settings`);
+    return response.json();
+  },
+
   // Get .hugsyrc content
   async getHugsyrc(): Promise<string> {
     const response = await fetch(`${API_BASE}/hugsyrc`);
@@ -20,6 +61,7 @@ export const api = {
   // Compile settings
   async compile(): Promise<{
     settings: Record<string, unknown> | null;
+    commands?: Record<string, { content: string; category?: string }>;
     output: string;
     error?: string;
   }> {
