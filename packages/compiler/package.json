@@ -1,6 +1,6 @@
 {
   "name": "@hugsylabs/hugsy-compiler",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Configuration compiler for Claude Code settings",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -35,7 +35,7 @@
   },
   "homepage": "https://github.com/HugsyLab/hugsy#readme",
   "dependencies": {
-    "@hugsylabs/hugsy-types": "^0.0.6",
+    "@hugsylabs/hugsy-types": "^0.0.7",
     "glob": "^10.3.10",
     "ora": "^8.0.1",
     "yaml": "^2.8.1"

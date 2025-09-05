@@ -17,16 +17,16 @@ importers:
         version: 2.29.6(@types/node@20.19.11)
       '@hugsylabs/plugin-git':
         specifier: ^0.0.5
-        version: 0.0.5(@hugsylabs/hugsy@0.1.4)
+        version: 0.0.5(@hugsylabs/hugsy@packages+cli)
       '@hugsylabs/plugin-node':
         specifier: ^0.0.5
-        version: 0.0.5(@hugsylabs/hugsy@0.1.4)
+        version: 0.0.5(@hugsylabs/hugsy@packages+cli)
       '@hugsylabs/plugin-test':
         specifier: ^0.0.5
-        version: 0.0.5(@hugsylabs/hugsy@0.1.4)
+        version: 0.0.5(@hugsylabs/hugsy@packages+cli)
       '@hugsylabs/plugin-typescript':
         specifier: ^0.0.5
-        version: 0.0.5(@hugsylabs/hugsy@0.1.4)
+        version: 0.0.5(@hugsylabs/hugsy@packages+cli)
       '@types/node':
         specifier: ^20.19.11
         version: 20.19.11
@@ -79,10 +79,10 @@ importers:
   packages/cli:
     dependencies:
       '@hugsylabs/hugsy-compiler':
-        specifier: ^0.1.8
+        specifier: ^0.1.9
         version: link:../compiler
       '@hugsylabs/hugsy-types':
-        specifier: ^0.0.6
+        specifier: ^0.0.7
         version: link:../types
       chalk:
         specifier: ^5.3.0
@@ -110,7 +110,7 @@ importers:
   packages/compiler:
     dependencies:
       '@hugsylabs/hugsy-types':
-        specifier: ^0.0.6
+        specifier: ^0.0.7
         version: link:../types
       glob:
         specifier: ^10.3.10
@@ -134,7 +134,7 @@ importers:
   packages/ui:
     dependencies:
       '@hugsylabs/hugsy-compiler':
-        specifier: workspace:^0.1.8
+        specifier: workspace:^0.1.9
         version: link:../compiler
       '@monaco-editor/react':
         specifier: ^4.7.0
@@ -1096,70 +1096,40 @@ packages:
       levn: 0.4.1
     dev: true
 
-  /@hugsylabs/hugsy-compiler@0.1.8:
-    resolution: {integrity: sha512-3Cu6PIA/9JwZpNbqcJ3lW+x3DMTQhOQ+IPVg19ZDOM8c/XYnWEb4f6ax7ZReLgVTt+IsrRiQ+bWRNgMBpQwvEg==}
-    engines: {node: '>=18.0.0'}
-    dependencies:
-      '@hugsylabs/hugsy-types': 0.0.6
-      glob: 10.4.5
-      ora: 8.2.0
-      yaml: 2.8.1
-    dev: true
-
-  /@hugsylabs/hugsy-types@0.0.6:
-    resolution: {integrity: sha512-YZxCk7y5jN6NTXG6q53pa3GZsdbLDi5kAGbTlUJKOxYgd3gsI1vNcsbl9+9wczCPt2QW2Ayj55am5Vv8ibLhnA==}
-    engines: {node: '>=18.0.0'}
-    dev: true
-
-  /@hugsylabs/hugsy@0.1.4:
-    resolution: {integrity: sha512-RpWwlHrVxJwGWEFRgq1FE228AXWZdwgJUB/y6mlmX4b2Bpyz/CEl02SkzMZdQfZCNXkapTD1PflqOFTTReadug==}
-    engines: {node: '>=18.0.0'}
-    hasBin: true
-    dependencies:
-      '@hugsylabs/hugsy-compiler': 0.1.8
-      '@hugsylabs/hugsy-types': 0.0.6
-      chalk: 5.6.0
-      commander: 11.1.0
-      glob: 10.4.5
-      ora: 8.2.0
-      prompts: 2.4.2
-      yaml: 2.8.1
-    dev: true
-
-  /@hugsylabs/plugin-git@0.0.5(@hugsylabs/hugsy@0.1.4):
+  /@hugsylabs/plugin-git@0.0.5(@hugsylabs/hugsy@packages+cli):
     resolution: {integrity: sha512-NNv8FDFiyRoY/BS/ZQb48Uvzk+s3+80nrnPk968p1Xfk8XhoVpaQsqJRuCqJpXpcuX9kq2nxLLSsaOu1nXSaFA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@hugsylabs/hugsy': '>=0.0.1'
     dependencies:
-      '@hugsylabs/hugsy': 0.1.4
+      '@hugsylabs/hugsy': link:packages/cli
     dev: true
 
-  /@hugsylabs/plugin-node@0.0.5(@hugsylabs/hugsy@0.1.4):
+  /@hugsylabs/plugin-node@0.0.5(@hugsylabs/hugsy@packages+cli):
     resolution: {integrity: sha512-zkYSA7aqSmgO+qmilHifg8QFvwKN51TFzxpLyCxEBCfOJX3YDBolgvaTt0unqzq71wYNl4JkeftmeCoejW+kYQ==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@hugsylabs/hugsy': '>=0.0.1'
     dependencies:
-      '@hugsylabs/hugsy': 0.1.4
+      '@hugsylabs/hugsy': link:packages/cli
     dev: true
 
-  /@hugsylabs/plugin-test@0.0.5(@hugsylabs/hugsy@0.1.4):
+  /@hugsylabs/plugin-test@0.0.5(@hugsylabs/hugsy@packages+cli):
     resolution: {integrity: sha512-F5/AS8qTzzZU4KoFFmcs2duO53Bw+u7LJBga4vI2UkPoxkFwC6EOmuXzncDcVXlM/EILmfK2LoM/rp3+QVyM7g==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@hugsylabs/hugsy': '>=0.0.1'
     dependencies:
-      '@hugsylabs/hugsy': 0.1.4
+      '@hugsylabs/hugsy': link:packages/cli
     dev: true
 
-  /@hugsylabs/plugin-typescript@0.0.5(@hugsylabs/hugsy@0.1.4):
+  /@hugsylabs/plugin-typescript@0.0.5(@hugsylabs/hugsy@packages+cli):
     resolution: {integrity: sha512-1RuhxsjGqXPZGa/vK0X99Hb1oEtspC91Ghqt2GBCsc/66ECw/IJSHj4MPnBchr8wobhSyBhx/9XSL3/Ty2Ly1w==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@hugsylabs/hugsy': '>=0.0.1'
     dependencies:
-      '@hugsylabs/hugsy': 0.1.4
+      '@hugsylabs/hugsy': link:packages/cli
     dev: true
 
   /@humanfs/core@0.19.1:
@@ -2088,6 +2058,7 @@ packages:
   /cli-spinners@2.9.2:
     resolution: {integrity: sha512-ywqV+5MmyL4E7ybXgKys4DugZbX0FC6LnwrhjuykIjnK9k8OQacQ7axGKnjDXWNhns0xot3bZI5h55H8yo9cJg==}
     engines: {node: '>=6'}
+    dev: false
 
   /cli-truncate@4.0.0:
     resolution: {integrity: sha512-nPdaFdQ0h/GEigbPClz11D0v/ZJEwxmeVZGeMo3Z5StPtUTkA9o1lD6QwoirYiSDzbcwn2XcjwmCp68W1IS4TA==}
@@ -2127,6 +2098,7 @@ packages:
   /commander@11.1.0:
     resolution: {integrity: sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==}
     engines: {node: '>=16'}
+    dev: false
 
   /commander@14.0.0:
     resolution: {integrity: sha512-2uM9rYjPvyq39NwLRqaiLtWHyDC1FvryJDa2ATTVims5YAS4PupsEQsDvP14FqhFr0P49CYDugi59xaxJlTXRA==}
@@ -3059,6 +3031,7 @@ packages:
   /is-interactive@2.0.0:
     resolution: {integrity: sha512-qP1vozQRI+BMOPcjFzrjXuQvdak2pHNUMZoeG2eRbiSqyvbEf/wQtEOTOX1guk6E3t36RkaqiSt8A/6YElNxLQ==}
     engines: {node: '>=12'}
+    dev: false
 
   /is-number@7.0.0:
     resolution: {integrity: sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng==}
@@ -3080,10 +3053,12 @@ packages:
   /is-unicode-supported@1.3.0:
     resolution: {integrity: sha512-43r2mRvz+8JRIKnWJ+3j8JtjRKZ6GmjzfaE/qiBJnikNnYv/6bagRJ1kUhNk8R5EX/GkobD+r+sfxCPJsiKBLQ==}
     engines: {node: '>=12'}
+    dev: false
 
   /is-unicode-supported@2.1.0:
     resolution: {integrity: sha512-mE00Gnza5EEB3Ds0HfMyllZzbBrmLOX3vfWoj9A9PEnTfratQ/BcaJOuMhnkhjXvb2+FkY3VuHqtAGpTPmglFQ==}
     engines: {node: '>=18'}
+    dev: false
 
   /is-windows@1.0.2:
     resolution: {integrity: sha512-eXK1UInq2bPmjyX6e3VHIzMLobc4J94i4AWn+Hpq3OU5KkrRC96OAcR3PRJ/pGu6m8TRnBHP9dkXQVsT/COVIA==}
@@ -3289,6 +3264,7 @@ packages:
     dependencies:
       chalk: 5.6.0
       is-unicode-supported: 1.3.0
+    dev: false
 
   /log-update@6.1.0:
     resolution: {integrity: sha512-9ie8ItPR6tjY5uYJh8K/Zrv/RMZ5VOlOWvtZdEHYSTFKZfIBPQa9tOAEeAWhd+AnIneLJ22w5fjOYtoutpWq5w==}
@@ -3578,6 +3554,7 @@ packages:
       stdin-discarder: 0.2.2
       string-width: 7.2.0
       strip-ansi: 7.1.0
+    dev: false
 
   /outdent@0.5.0:
     resolution: {integrity: sha512-/jHxFIzoMXdqPzTaCpFzAAWhpkSjZPF4Vsn6jAfNpmbH/ymsmd7Qc6VE9BGn0L6YMj6uwpQLxCECpus4ukKS9Q==}
@@ -3847,6 +3824,7 @@ packages:
     dependencies:
       kleur: 3.0.3
       sisteransi: 1.0.5
+    dev: false
 
   /proxy-addr@2.0.7:
     resolution: {integrity: sha512-llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg==}
@@ -4167,6 +4145,7 @@ packages:
 
   /sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
+    dev: false
 
   /slash@3.0.0:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
@@ -4229,6 +4208,7 @@ packages:
   /stdin-discarder@0.2.2:
     resolution: {integrity: sha512-UhDfHmA92YAlNnCfhmq0VeNL5bDbiZGg7sZ2IvPsXubGkiNa9EC+tUTsjBRsYUAz87btI6/1wf4XoVvQ3uRnmQ==}
     engines: {node: '>=18'}
+    dev: false
 
   /string-argv@0.3.2:
     resolution: {integrity: sha512-aqD2Q0144Z+/RqG52NeHEkZauTAUWJO8c6yTftGJKO3Tja5tUgIfmIl6kExvhtxSDP7fXB6DvzkfMpCd/F3G+Q==}
