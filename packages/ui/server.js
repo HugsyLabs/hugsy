@@ -1,3 +1,6 @@
+/* eslint-env node */
+/* global console */
+
 import express from 'express';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -10,6 +13,21 @@ import { Compiler } from '@hugsylabs/hugsy-compiler';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Safely resolve project root path - prevent directory traversal attacks
+const PROJECT_ROOT = path.resolve(__dirname, '../..');
+const HUGSYRC_PATH = path.resolve(PROJECT_ROOT, '.hugsyrc.json');
+const CLAUDE_SETTINGS_PATH = path.resolve(PROJECT_ROOT, '.claude', 'settings.json');
+const CLAUDE_COMMANDS_PATH = path.resolve(PROJECT_ROOT, '.claude', 'commands');
+
+// Validate path is within project root
+function validatePath(targetPath) {
+  const resolved = path.resolve(targetPath);
+  if (!resolved.startsWith(PROJECT_ROOT)) {
+    throw new Error('Path traversal attempt detected');
+  }
+  return resolved;
+}
+
 const execPromise = util.promisify(exec);
 const app = express();
 const PORT = 3001;
@@ -20,8 +38,7 @@ app.use(express.json());
 // Get .hugsyrc content
 app.get('/api/hugsyrc', async (req, res) => {
   try {
-    const hugsyrcPath = path.join(__dirname, '../../.hugsyrc.json');
-    const content = await fs.readFile(hugsyrcPath, 'utf-8');
+    const content = await fs.readFile(HUGSYRC_PATH, 'utf-8');
     res.json({ content });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -31,8 +48,7 @@ app.get('/api/hugsyrc', async (req, res) => {
 // Update .hugsyrc content
 app.post('/api/hugsyrc', async (req, res) => {
   try {
-    const hugsyrcPath = path.join(__dirname, '../../.hugsyrc.json');
-    await fs.writeFile(hugsyrcPath, req.body.content, 'utf-8');
+    await fs.writeFile(HUGSYRC_PATH, req.body.content, 'utf-8');
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -42,24 +58,21 @@ app.post('/api/hugsyrc', async (req, res) => {
 // Compile settings using hugsy compiler
 app.post('/api/compile', async (req, res) => {
   try {
-    const hugsyrcPath = path.join(__dirname, '../../.hugsyrc.json');
-    const projectRoot = path.join(__dirname, '../..');
-    
     // Read the config file first
-    const configContent = await fs.readFile(hugsyrcPath, 'utf-8');
+    const configContent = await fs.readFile(HUGSYRC_PATH, 'utf-8');
     const config = JSON.parse(configContent);
-    
+
     // Create compiler instance with projectRoot
     const compiler = new Compiler({
-      projectRoot: projectRoot
+      projectRoot: PROJECT_ROOT,
     });
-    
+
     // Capture logs
     const logs = [];
     const originalLog = console.log;
     const originalError = console.error;
     const originalWarn = console.warn;
-    
+
     console.log = (...args) => {
       logs.push(args.join(' '));
       originalLog.apply(console, args);
@@ -72,41 +85,41 @@ app.post('/api/compile', async (req, res) => {
       logs.push('[WARN] ' + args.join(' '));
       originalWarn.apply(console, args);
     };
-    
+
     try {
       // Compile the configuration - pass config as parameter
       const result = await compiler.compile(config);
-      
+
       // Get compiled commands
       const compiledCommands = compiler.getCompiledCommands();
       const commands = {};
       for (const [name, command] of compiledCommands) {
         commands[name] = command;
       }
-      
+
       // Restore console
       console.log = originalLog;
       console.error = originalError;
       console.warn = originalWarn;
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         settings: result,
         commands: commands,
         output: logs.join('\n'),
-        error: null 
+        error: null,
       });
     } catch (compileError) {
       // Restore console
       console.log = originalLog;
       console.error = originalError;
       console.warn = originalWarn;
-      
-      res.json({ 
+
+      res.json({
         success: false,
         settings: null,
         output: logs.join('\n'),
-        error: compileError.message
+        error: compileError.message,
       });
     }
   } catch (error) {
@@ -117,18 +130,17 @@ app.post('/api/compile', async (req, res) => {
 // Get commands from .claude/commands
 app.get('/api/commands', async (req, res) => {
   try {
-    const commandsPath = path.join(__dirname, '../../.claude/commands');
-    const folders = await fs.readdir(commandsPath);
-    
+    const folders = await fs.readdir(CLAUDE_COMMANDS_PATH);
+
     const result = [];
     for (const folder of folders) {
-      const folderPath = path.join(commandsPath, folder);
+      const folderPath = path.join(CLAUDE_COMMANDS_PATH, folder);
       const stat = await fs.stat(folderPath);
-      
+
       if (stat.isDirectory()) {
         const files = await fs.readdir(folderPath);
         const commandFiles = [];
-        
+
         for (const file of files) {
           if (file.endsWith('.md')) {
             const filePath = path.join(folderPath, file);
@@ -136,18 +148,18 @@ app.get('/api/commands', async (req, res) => {
             commandFiles.push({
               name: file,
               path: `.claude/commands/${folder}/${file}`,
-              content
+              content,
             });
           }
         }
-        
+
         result.push({
           name: folder,
-          files: commandFiles
+          files: commandFiles,
         });
       }
     }
-    
+
     res.json({ commands: result });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -158,7 +170,7 @@ app.get('/api/commands', async (req, res) => {
 app.post('/api/commands', async (req, res) => {
   try {
     const { path: commandPath, content } = req.body;
-    const fullPath = path.join(__dirname, '../..', commandPath);
+    const fullPath = validatePath(path.resolve(PROJECT_ROOT, commandPath));
     await fs.writeFile(fullPath, content, 'utf-8');
     res.json({ success: true });
   } catch (error) {
@@ -170,7 +182,7 @@ app.post('/api/commands', async (req, res) => {
 app.delete('/api/commands', async (req, res) => {
   try {
     const { path: commandPath } = req.body;
-    const fullPath = path.join(__dirname, '../..', commandPath);
+    const fullPath = validatePath(path.resolve(PROJECT_ROOT, commandPath));
     await fs.unlink(fullPath);
     res.json({ success: true });
   } catch (error) {
@@ -182,36 +194,35 @@ app.delete('/api/commands', async (req, res) => {
 app.post('/api/install', async (req, res) => {
   try {
     const { force } = req.body || {};
-    
+
     // Run the actual hugsy install command with optional --force flag
     // Use npx to run the local workspace version
     const command = force ? 'npx hugsy install --force' : 'npx hugsy install';
     const { stdout, stderr } = await execPromise(command, {
-      cwd: path.join(__dirname, '../..')
+      cwd: PROJECT_ROOT,
     });
-    
+
     // Read the installed settings.json to confirm
-    const settingsPath = path.join(__dirname, '../../.claude/settings.json');
     let settings = null;
     try {
-      const settingsContent = await fs.readFile(settingsPath, 'utf-8');
+      const settingsContent = await fs.readFile(CLAUDE_SETTINGS_PATH, 'utf-8');
       settings = JSON.parse(settingsContent);
-    } catch (e) {
+    } catch {
       // Settings file might not exist or be invalid
     }
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       settings,
       output: stdout,
       error: stderr,
-      message: 'Settings installed successfully' 
+      message: 'Settings installed successfully',
     });
   } catch (error) {
-    res.status(500).json({ 
+    res.status(500).json({
       error: error.message,
       output: error.stdout || '',
-      stderr: error.stderr || ''
+      stderr: error.stderr || '',
     });
   }
 });

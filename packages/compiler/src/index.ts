@@ -60,30 +60,34 @@ export class Compiler {
    */
   public validateSettings(settings: ClaudeSettings): string[] {
     const errors: string[] = [];
-    
+
     // Validate $schema field
     if (!settings.$schema) {
       errors.push('Missing required $schema field');
     } else if (settings.$schema !== 'https://json.schemastore.org/claude-code-settings.json') {
-      errors.push('Invalid $schema value, must be https://json.schemastore.org/claude-code-settings.json');
+      errors.push(
+        'Invalid $schema value, must be https://json.schemastore.org/claude-code-settings.json'
+      );
     }
-    
+
     // Validate permissions format
     if (settings.permissions) {
       const validPermissionPattern = /^[A-Z][a-zA-Z]*(\(.*\))?$/;
-      
-      ['allow', 'ask', 'deny'].forEach(type => {
+
+      ['allow', 'ask', 'deny'].forEach((type) => {
         const perms = settings.permissions?.[type as keyof PermissionSettings];
         if (perms && Array.isArray(perms)) {
-          perms.forEach(perm => {
+          perms.forEach((perm) => {
             if (!validPermissionPattern.test(perm)) {
-              errors.push(`Invalid permission format in ${type}: "${perm}". Must match Tool or Tool(pattern)`);
+              errors.push(
+                `Invalid permission format in ${type}: "${perm}". Must match Tool or Tool(pattern)`
+              );
             }
           });
         }
       });
     }
-    
+
     // Validate hooks format
     if (settings.hooks) {
       for (const [hookType, hookConfigs] of Object.entries(settings.hooks)) {
@@ -91,7 +95,7 @@ export class Compiler {
           errors.push(`Hooks.${hookType} must be an array`);
           continue;
         }
-        
+
         hookConfigs.forEach((hook, index) => {
           // Check if matcher is present
           if (!hook.matcher) {
@@ -99,10 +103,12 @@ export class Compiler {
           } else {
             // Validate matcher format - should be tool name only, not with arguments
             if (hook.matcher.includes('(')) {
-              errors.push(`Hooks.${hookType}[${index}].matcher "${hook.matcher}" should be tool name only (e.g., "Bash" not "Bash(git *)")`);
+              errors.push(
+                `Hooks.${hookType}[${index}].matcher "${hook.matcher}" should be tool name only (e.g., "Bash" not "Bash(git *)")`
+              );
             }
           }
-          
+
           // Check if hooks array is present
           if (!hook.hooks || !Array.isArray(hook.hooks)) {
             errors.push(`Hooks.${hookType}[${index}] missing required 'hooks' array`);
@@ -110,24 +116,32 @@ export class Compiler {
             // Validate each hook in the array
             hook.hooks.forEach((h, hIndex) => {
               if (!h.type) {
-                errors.push(`Hooks.${hookType}[${index}].hooks[${hIndex}] missing required 'type' field`);
+                errors.push(
+                  `Hooks.${hookType}[${index}].hooks[${hIndex}] missing required 'type' field`
+                );
               } else if (h.type !== 'command') {
-                errors.push(`Hooks.${hookType}[${index}].hooks[${hIndex}].type must be "command", got "${h.type}"`);
+                errors.push(
+                  `Hooks.${hookType}[${index}].hooks[${hIndex}].type must be "command", got "${String(h.type)}"`
+                );
               }
-              
+
               if (!h.command) {
-                errors.push(`Hooks.${hookType}[${index}].hooks[${hIndex}] missing required 'command' field`);
+                errors.push(
+                  `Hooks.${hookType}[${index}].hooks[${hIndex}] missing required 'command' field`
+                );
               }
-              
+
               if (h.timeout !== undefined && typeof h.timeout !== 'number') {
-                errors.push(`Hooks.${hookType}[${index}].hooks[${hIndex}].timeout must be a number`);
+                errors.push(
+                  `Hooks.${hookType}[${index}].hooks[${hIndex}].timeout must be a number`
+                );
               }
             });
           }
         });
       }
     }
-    
+
     // Validate environment variables
     if (settings.env) {
       for (const [key, value] of Object.entries(settings.env)) {
@@ -136,45 +150,60 @@ export class Compiler {
         }
       }
     }
-    
+
     // Validate statusLine
     if (settings.statusLine) {
       if (!settings.statusLine.type || !['command', 'static'].includes(settings.statusLine.type)) {
-        errors.push(`statusLine.type must be 'command' or 'static', got '${settings.statusLine.type}'`);
+        errors.push(
+          `statusLine.type must be 'command' or 'static', got '${settings.statusLine.type}'`
+        );
       }
-      
+
       if (settings.statusLine.type === 'command' && !settings.statusLine.command) {
         errors.push('statusLine.command is required when type is "command"');
       }
-      
+
       if (settings.statusLine.type === 'static' && !settings.statusLine.value) {
         errors.push('statusLine.value is required when type is "static"');
       }
     }
-    
+
     // Validate optional numeric fields
-    if (settings.cleanupPeriodDays !== undefined && typeof settings.cleanupPeriodDays !== 'number') {
+    if (
+      settings.cleanupPeriodDays !== undefined &&
+      typeof settings.cleanupPeriodDays !== 'number'
+    ) {
       errors.push(`cleanupPeriodDays must be a number, got ${typeof settings.cleanupPeriodDays}`);
     }
-    
+
     // Validate boolean fields
-    if (settings.includeCoAuthoredBy !== undefined && typeof settings.includeCoAuthoredBy !== 'boolean') {
-      errors.push(`includeCoAuthoredBy must be a boolean, got ${typeof settings.includeCoAuthoredBy}`);
+    if (
+      settings.includeCoAuthoredBy !== undefined &&
+      typeof settings.includeCoAuthoredBy !== 'boolean'
+    ) {
+      errors.push(
+        `includeCoAuthoredBy must be a boolean, got ${typeof settings.includeCoAuthoredBy}`
+      );
     }
-    
-    if (settings.enableAllProjectMcpServers !== undefined && typeof settings.enableAllProjectMcpServers !== 'boolean') {
-      errors.push(`enableAllProjectMcpServers must be a boolean, got ${typeof settings.enableAllProjectMcpServers}`);
+
+    if (
+      settings.enableAllProjectMcpServers !== undefined &&
+      typeof settings.enableAllProjectMcpServers !== 'boolean'
+    ) {
+      errors.push(
+        `enableAllProjectMcpServers must be a boolean, got ${typeof settings.enableAllProjectMcpServers}`
+      );
     }
-    
+
     // Validate array fields
     if (settings.enabledMcpjsonServers && !Array.isArray(settings.enabledMcpjsonServers)) {
       errors.push('enabledMcpjsonServers must be an array');
     }
-    
+
     if (settings.disabledMcpjsonServers && !Array.isArray(settings.disabledMcpjsonServers)) {
       errors.push('disabledMcpjsonServers must be an array');
     }
-    
+
     return errors;
   }
 
@@ -395,11 +424,11 @@ export class Compiler {
     if (settingsValidationErrors.length > 0) {
       if (this.options.throwOnError) {
         throw new CompilerError('Generated settings.json validation failed', {
-          errors: settingsValidationErrors
+          errors: settingsValidationErrors,
         });
       } else {
         console.warn('⚠️  Generated settings.json validation warnings:');
-        settingsValidationErrors.forEach(error => console.warn(`  - ${error}`));
+        settingsValidationErrors.forEach((error) => console.warn(`  - ${error}`));
       }
     }
 
@@ -582,21 +611,22 @@ export class Compiler {
   /**
    * Sanitize configuration values - remove zero-width and control characters
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private sanitizeConfigValues(obj: any): any {
+  private sanitizeConfigValues<T>(obj: T): T {
     if (typeof obj === 'string') {
       // Remove zero-width and control characters from strings
       // eslint-disable-next-line no-control-regex
-      return obj.replace(/[\u200B-\u200D\uFEFF\u0000-\u001F\u007F-\u009F]/g, '');
+      return obj.replace(/[\u200B-\u200D\uFEFF\u0000-\u001F\u007F-\u009F]/g, '') as T;
     }
 
     if (Array.isArray(obj)) {
       for (let i = 0; i < obj.length; i++) {
         obj[i] = this.sanitizeConfigValues(obj[i]);
       }
-    } else if (obj && typeof obj === 'object') {
+    } else if (obj && typeof obj === 'object' && obj !== null) {
       for (const key of Object.keys(obj)) {
-        obj[key] = this.sanitizeConfigValues(obj[key]);
+        (obj as Record<string, unknown>)[key] = this.sanitizeConfigValues(
+          (obj as Record<string, unknown>)[key]
+        );
       }
     }
 
@@ -819,62 +849,67 @@ export class Compiler {
    */
   private normalizeHooksForClaude(hooks: HookSettings): HookSettings {
     const normalized: HookSettings = {};
-    
+
     for (const [hookType, hookConfigs] of Object.entries(hooks)) {
       if (!hookConfigs) continue;
-      
+
       const hookArray = Array.isArray(hookConfigs) ? hookConfigs : [hookConfigs];
-      
+
       // Use a Map to group hooks by matcher
-      const matcherGroups = new Map<string, Array<{type: 'command', command: string, timeout: number}>>();
-      
+      const matcherGroups = new Map<
+        string,
+        { type: 'command'; command: string; timeout: number }[]
+      >();
+
       for (const hook of hookArray) {
         if (typeof hook === 'string') {
           // String hook - shouldn't happen but handle it
           continue;
         }
-        
+
         let matcher = '*'; // Default matcher for all tools
-        let commands: Array<{type: 'command', command: string, timeout: number}> = [];
-        
+        let commands: { type: 'command'; command: string; timeout: number }[] = [];
+
         // Check if it's already in correct format with hooks array
         if (hook.hooks && Array.isArray(hook.hooks)) {
-          matcher = this.normalizeMatcherFormat(hook.matcher || '*');
-          commands = hook.hooks.map(h => {
+          matcher = this.normalizeMatcherFormat(hook.matcher ?? '*');
+          commands = hook.hooks.map((h) => {
             if (typeof h === 'object' && 'command' in h) {
               return {
                 type: 'command' as const,
                 command: h.command,
-                timeout: h.timeout || 3000
+                timeout: h.timeout ?? 3000,
               };
             }
             // If it's already properly formatted, keep it
-            return h as {type: 'command', command: string, timeout: number};
+            return h as { type: 'command'; command: string; timeout: number };
           });
         } else if (hook.command) {
           // Simple format - convert to Claude Code format
-          matcher = this.normalizeMatcherFormat(hook.matcher || '*');
-          commands = [{
-            type: 'command' as const,
-            command: hook.command,
-            timeout: hook.timeout || 3000
-          }];
+          matcher = this.normalizeMatcherFormat(hook.matcher ?? '*');
+          commands = [
+            {
+              type: 'command' as const,
+              command: hook.command,
+              timeout: hook.timeout ?? 3000,
+            },
+          ];
         }
-        
+
         // Add commands to the matcher group
         if (!matcherGroups.has(matcher)) {
           matcherGroups.set(matcher, []);
         }
         matcherGroups.get(matcher)!.push(...commands);
       }
-      
+
       // Convert the Map to the final array format
       normalized[hookType] = Array.from(matcherGroups.entries()).map(([matcher, commands]) => ({
         matcher,
-        hooks: commands
+        hooks: commands,
       }));
     }
-    
+
     return normalized;
   }
 
@@ -887,13 +922,14 @@ export class Compiler {
     if (matcher === '.*' || matcher === '') {
       return '*'; // Use * for all tools per Claude Code docs
     }
-    
+
     // Extract tool name from "Tool(args)" format
-    const match = matcher.match(/^([A-Za-z]+)\(/);
+    const regex = /^([A-Za-z]+)\(/;
+    const match = regex.exec(matcher);
     if (match) {
       return match[1]; // Return just the tool name
     }
-    
+
     // If it's already a simple tool name or pattern, return as is
     return matcher;
   }

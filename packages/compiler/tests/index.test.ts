@@ -7,7 +7,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Compiler } from '../src/index';
 import type { HugsyConfig, ClaudeSettings } from '@hugsylabs/hugsy-types';
 import * as fs from 'fs';
-import * as path from 'path';
 
 // Mock fs module
 vi.mock('fs', () => ({
@@ -17,7 +16,7 @@ vi.mock('fs', () => ({
 
 describe('Hugsy Compiler', () => {
   let compiler: Compiler;
-  
+
   beforeEach(() => {
     compiler = new Compiler({ projectRoot: '/test/project' });
     vi.clearAllMocks();
@@ -27,12 +26,12 @@ describe('Hugsy Compiler', () => {
     it('should add $schema field to output', async () => {
       const config: HugsyConfig = {
         permissions: {
-          allow: ['Read(**)', 'Write(**/*.ts)']
-        }
+          allow: ['Read(**)', 'Write(**/*.ts)'],
+        },
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       expect(result.$schema).toBe('https://json.schemastore.org/claude-code-settings.json');
     });
 
@@ -41,16 +40,16 @@ describe('Hugsy Compiler', () => {
         permissions: {
           allow: ['Read(**)', 'Write(**/*.ts)'],
           ask: ['Bash(git push *)'],
-          deny: ['Bash(rm -rf /)']
-        }
+          deny: ['Bash(rm -rf /)'],
+        },
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       expect(result.permissions).toEqual({
         allow: ['Read(**)', 'Write(**/*.ts)'],
         ask: ['Bash(git push *)'],
-        deny: ['Bash(rm -rf /)']
+        deny: ['Bash(rm -rf /)'],
       });
     });
 
@@ -58,15 +57,15 @@ describe('Hugsy Compiler', () => {
       const config: HugsyConfig = {
         env: {
           NODE_ENV: 'development',
-          PROJECT: 'test'
-        }
+          PROJECT: 'test',
+        },
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       expect(result.env).toEqual({
         NODE_ENV: 'development',
-        PROJECT: 'test'
+        PROJECT: 'test',
       });
     });
   });
@@ -79,14 +78,14 @@ describe('Hugsy Compiler', () => {
             {
               matcher: 'Bash',
               command: 'echo "Starting bash command"',
-              timeout: 5000
-            }
-          ]
-        }
+              timeout: 5000,
+            },
+          ],
+        },
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       expect(result.hooks?.PreToolUse).toEqual([
         {
           matcher: 'Bash',
@@ -94,10 +93,10 @@ describe('Hugsy Compiler', () => {
             {
               type: 'command',
               command: 'echo "Starting bash command"',
-              timeout: 5000
-            }
-          ]
-        }
+              timeout: 5000,
+            },
+          ],
+        },
       ]);
     });
 
@@ -107,14 +106,14 @@ describe('Hugsy Compiler', () => {
           PostToolUse: [
             {
               matcher: 'Bash(git commit *)',
-              command: 'echo "Git commit executed"'
-            }
-          ]
-        }
+              command: 'echo "Git commit executed"',
+            },
+          ],
+        },
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       expect(result.hooks?.PostToolUse?.[0].matcher).toBe('Bash');
     });
 
@@ -124,18 +123,18 @@ describe('Hugsy Compiler', () => {
           PreToolUse: [
             {
               matcher: 'Write',
-              command: 'echo "First write hook"'
+              command: 'echo "First write hook"',
             },
             {
               matcher: 'Write',
-              command: 'echo "Second write hook"'
-            }
-          ]
-        }
+              command: 'echo "Second write hook"',
+            },
+          ],
+        },
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       expect(result.hooks?.PreToolUse).toHaveLength(1);
       expect(result.hooks?.PreToolUse?.[0].matcher).toBe('Write');
       expect(result.hooks?.PreToolUse?.[0].hooks).toHaveLength(2);
@@ -143,13 +142,13 @@ describe('Hugsy Compiler', () => {
         {
           type: 'command',
           command: 'echo "First write hook"',
-          timeout: 3000
+          timeout: 3000,
         },
         {
           type: 'command',
           command: 'echo "Second write hook"',
-          timeout: 3000
-        }
+          timeout: 3000,
+        },
       ]);
     });
 
@@ -159,14 +158,14 @@ describe('Hugsy Compiler', () => {
           PreToolUse: [
             {
               matcher: '.*',
-              command: 'echo "Any tool"'
-            }
-          ]
-        }
+              command: 'echo "Any tool"',
+            },
+          ],
+        },
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       expect(result.hooks?.PreToolUse?.[0].matcher).toBe('*');
     });
 
@@ -180,16 +179,16 @@ describe('Hugsy Compiler', () => {
                 {
                   type: 'command' as const,
                   command: 'echo "test"',
-                  timeout: 1000
-                }
-              ]
-            }
-          ]
-        }
+                  timeout: 1000,
+                },
+              ],
+            },
+          ],
+        },
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       expect(result.hooks?.PreToolUse).toEqual([
         {
           matcher: 'Bash',
@@ -197,11 +196,158 @@ describe('Hugsy Compiler', () => {
             {
               type: 'command',
               command: 'echo "test"',
-              timeout: 1000
-            }
-          ]
-        }
+              timeout: 1000,
+            },
+          ],
+        },
       ]);
+    });
+  });
+
+  describe('Hook Merging Edge Cases', () => {
+    it('should merge multiple hooks with same matcher into single entry', async () => {
+      const config: HugsyConfig = {
+        hooks: {
+          PreToolUse: [
+            { matcher: 'Bash', command: 'echo "first"', timeout: 1000 },
+            { matcher: 'Bash', command: 'echo "second"', timeout: 2000 },
+            { matcher: 'Write', command: 'echo "write"', timeout: 3000 },
+            { matcher: 'Bash', command: 'echo "third"', timeout: 1500 },
+          ],
+        },
+      };
+
+      const result = await compiler.compile(config);
+      const settings = result;
+
+      // Should have 2 entries: one for Bash (merged) and one for Write
+      expect(settings.hooks?.PreToolUse).toHaveLength(2);
+
+      const bashHook = settings.hooks?.PreToolUse?.find((h) => h.matcher === 'Bash');
+      const writeHook = settings.hooks?.PreToolUse?.find((h) => h.matcher === 'Write');
+
+      // Bash should have all 3 commands merged
+      expect(bashHook?.hooks).toHaveLength(3);
+      expect(bashHook?.hooks?.[0]).toEqual({
+        type: 'command',
+        command: 'echo "first"',
+        timeout: 1000,
+      });
+      expect(bashHook?.hooks?.[1]).toEqual({
+        type: 'command',
+        command: 'echo "second"',
+        timeout: 2000,
+      });
+      expect(bashHook?.hooks?.[2]).toEqual({
+        type: 'command',
+        command: 'echo "third"',
+        timeout: 1500,
+      });
+
+      // Write should have its single command
+      expect(writeHook?.hooks).toHaveLength(1);
+      expect(writeHook?.hooks?.[0]).toEqual({
+        type: 'command',
+        command: 'echo "write"',
+        timeout: 3000,
+      });
+    });
+
+    it('should handle wildcard matcher with specific matchers', async () => {
+      const config: HugsyConfig = {
+        hooks: {
+          PostToolUse: [
+            { matcher: '*', command: 'echo "all tools"', timeout: 500 },
+            { matcher: 'Bash', command: 'echo "bash specific"', timeout: 1000 },
+            { matcher: '*', command: 'echo "another all"', timeout: 750 },
+          ],
+        },
+      };
+
+      const result = await compiler.compile(config);
+      const settings = result;
+
+      // Should have 2 entries: one for * and one for Bash
+      expect(settings.hooks?.PostToolUse).toHaveLength(2);
+
+      const wildcardHook = settings.hooks?.PostToolUse?.find((h) => h.matcher === '*');
+      const bashHook = settings.hooks?.PostToolUse?.find((h) => h.matcher === 'Bash');
+
+      // Wildcard should have both wildcard commands
+      expect(wildcardHook?.hooks).toHaveLength(2);
+      expect(wildcardHook?.hooks?.[0].command).toBe('echo "all tools"');
+      expect(wildcardHook?.hooks?.[1].command).toBe('echo "another all"');
+
+      // Bash should have its specific command
+      expect(bashHook?.hooks).toHaveLength(1);
+      expect(bashHook?.hooks?.[0].command).toBe('echo "bash specific"');
+    });
+
+    it('should preserve order when merging hooks', async () => {
+      const config: HugsyConfig = {
+        hooks: {
+          UserPromptSubmit: [
+            { matcher: 'Read', command: 'cmd1', timeout: 100 },
+            { matcher: 'Write', command: 'cmd2', timeout: 200 },
+            { matcher: 'Read', command: 'cmd3', timeout: 300 },
+            { matcher: 'Write', command: 'cmd4', timeout: 400 },
+            { matcher: 'Read', command: 'cmd5', timeout: 500 },
+          ],
+        },
+      };
+
+      const result = await compiler.compile(config);
+      const settings = result;
+
+      const readHook = settings.hooks?.UserPromptSubmit?.find((h) => h.matcher === 'Read');
+      const writeHook = settings.hooks?.UserPromptSubmit?.find((h) => h.matcher === 'Write');
+
+      // Commands should be in order they appeared
+      expect(readHook?.hooks?.map((h) => h.command)).toEqual(['cmd1', 'cmd3', 'cmd5']);
+      expect(writeHook?.hooks?.map((h) => h.command)).toEqual(['cmd2', 'cmd4']);
+    });
+
+    it('should handle empty hooks array gracefully', async () => {
+      const config: HugsyConfig = {
+        hooks: {
+          PreToolUse: [],
+        },
+      };
+
+      const result = await compiler.compile(config);
+      const settings = result;
+
+      // Empty arrays should result in empty array in output
+      expect(settings.hooks?.PreToolUse).toEqual([]);
+    });
+
+    it('should handle mixed hook formats (simple and nested)', async () => {
+      const config: HugsyConfig = {
+        hooks: {
+          PreToolUse: [
+            { command: 'echo "simple"', timeout: 1000 }, // Simple format
+            {
+              matcher: 'Bash',
+              hooks: [{ type: 'command', command: 'echo "nested"', timeout: 2000 }],
+            }, // Nested format
+          ],
+        },
+      };
+
+      const result = await compiler.compile(config);
+      const settings = result;
+
+      expect(settings.hooks?.PreToolUse).toHaveLength(2);
+
+      // Simple format should get * matcher
+      const wildcardHook = settings.hooks?.PreToolUse?.find((h) => h.matcher === '*');
+      expect(wildcardHook?.hooks).toHaveLength(1);
+      expect(wildcardHook?.hooks?.[0].command).toBe('echo "simple"');
+
+      // Nested format should keep its matcher
+      const bashHook = settings.hooks?.PreToolUse?.find((h) => h.matcher === 'Bash');
+      expect(bashHook?.hooks).toHaveLength(1);
+      expect(bashHook?.hooks?.[0].command).toBe('echo "nested"');
     });
   });
 
@@ -209,12 +355,12 @@ describe('Hugsy Compiler', () => {
     it('should validate $schema field', () => {
       const settings: ClaudeSettings = {
         permissions: {
-          allow: ['Read(**)']
-        }
+          allow: ['Read(**)'],
+        },
       };
-      
+
       const errors = compiler.validateSettings(settings);
-      
+
       expect(errors).toContain('Missing required $schema field');
     });
 
@@ -222,28 +368,36 @@ describe('Hugsy Compiler', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://wrong.schema.com',
         permissions: {
-          allow: ['Read(**)']
-        }
+          allow: ['Read(**)'],
+        },
       };
-      
+
       const errors = compiler.validateSettings(settings);
-      
-      expect(errors).toContain('Invalid $schema value, must be https://json.schemastore.org/claude-code-settings.json');
+
+      expect(errors).toContain(
+        'Invalid $schema value, must be https://json.schemastore.org/claude-code-settings.json'
+      );
     });
 
     it('should validate permission format', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
         permissions: {
-          allow: ['read(**)', '123Invalid', 'Valid(pattern)']
-        }
+          allow: ['read(**)', '123Invalid', 'Valid(pattern)'],
+        },
       };
-      
+
       const errors = compiler.validateSettings(settings);
-      
-      expect(errors).toContain('Invalid permission format in allow: "read(**)". Must match Tool or Tool(pattern)');
-      expect(errors).toContain('Invalid permission format in allow: "123Invalid". Must match Tool or Tool(pattern)');
-      expect(errors).not.toContain('Invalid permission format in allow: "Valid(pattern)". Must match Tool or Tool(pattern)');
+
+      expect(errors).toContain(
+        'Invalid permission format in allow: "read(**)". Must match Tool or Tool(pattern)'
+      );
+      expect(errors).toContain(
+        'Invalid permission format in allow: "123Invalid". Must match Tool or Tool(pattern)'
+      );
+      expect(errors).not.toContain(
+        'Invalid permission format in allow: "Valid(pattern)". Must match Tool or Tool(pattern)'
+      );
     });
 
     it('should validate hook structure', () => {
@@ -257,17 +411,17 @@ describe('Hugsy Compiler', () => {
                 {
                   type: 'command',
                   command: 'echo "test"',
-                  timeout: 1000
-                }
-              ]
-            } as any
-          ]
-        }
+                  timeout: 1000,
+                },
+              ],
+            },
+          ],
+        },
       };
-      
+
       const errors = compiler.validateSettings(settings);
-      
-      expect(errors).toContain('Hooks.PreToolUse[0] missing required \'matcher\' field');
+
+      expect(errors).toContain("Hooks.PreToolUse[0] missing required 'matcher' field");
     });
 
     it('should validate hook matcher format', () => {
@@ -281,17 +435,19 @@ describe('Hugsy Compiler', () => {
                 {
                   type: 'command',
                   command: 'echo "test"',
-                  timeout: 1000
-                }
-              ]
-            }
-          ]
-        }
+                  timeout: 1000,
+                },
+              ],
+            },
+          ],
+        },
       };
-      
+
       const errors = compiler.validateSettings(settings);
-      
-      expect(errors).toContain('Hooks.PreToolUse[0].matcher "Bash(git *)" should be tool name only (e.g., "Bash" not "Bash(git *)")');
+
+      expect(errors).toContain(
+        'Hooks.PreToolUse[0].matcher "Bash(git *)" should be tool name only (e.g., "Bash" not "Bash(git *)")'
+      );
     });
 
     it('should validate hook command structure', () => {
@@ -305,17 +461,17 @@ describe('Hugsy Compiler', () => {
                 {
                   // Missing type
                   command: 'echo "test"',
-                  timeout: 1000
-                } as any
-              ]
-            }
-          ]
-        }
+                  timeout: 1000,
+                },
+              ],
+            },
+          ],
+        },
       };
-      
+
       const errors = compiler.validateSettings(settings);
-      
-      expect(errors).toContain('Hooks.PostToolUse[0].hooks[0] missing required \'type\' field');
+
+      expect(errors).toContain("Hooks.PostToolUse[0].hooks[0] missing required 'type' field");
     });
 
     it('should validate hook type literal', () => {
@@ -327,62 +483,62 @@ describe('Hugsy Compiler', () => {
               matcher: 'Bash',
               hooks: [
                 {
-                  type: 'script' as any,
+                  type: 'script' as 'command',
                   command: 'echo "test"',
-                  timeout: 1000
-                }
-              ]
-            }
-          ]
-        }
+                  timeout: 1000,
+                },
+              ],
+            },
+          ],
+        },
       };
-      
+
       const errors = compiler.validateSettings(settings);
-      
+
       expect(errors).toContain('Hooks.PreToolUse[0].hooks[0].type must be "command", got "script"');
     });
 
     it('should validate environment variables are strings', () => {
-      const settings: ClaudeSettings = {
+      const settings = {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
         env: {
           NODE_ENV: 'development',
-          PORT: 3000 as any,
-          DEBUG: true as any
-        }
-      };
-      
+          PORT: 3000,
+          DEBUG: true,
+        },
+      } as ClaudeSettings;
+
       const errors = compiler.validateSettings(settings);
-      
-      expect(errors).toContain('Environment variable \'PORT\' must be a string, got number');
-      expect(errors).toContain('Environment variable \'DEBUG\' must be a string, got boolean');
+
+      expect(errors).toContain("Environment variable 'PORT' must be a string, got number");
+      expect(errors).toContain("Environment variable 'DEBUG' must be a string, got boolean");
     });
 
     it('should validate statusLine configuration', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
         statusLine: {
-          type: 'invalid' as any,
-          command: 'echo "status"'
-        }
+          type: 'invalid' as 'command' | 'static',
+          command: 'echo "status"',
+        },
       };
-      
+
       const errors = compiler.validateSettings(settings);
-      
-      expect(errors).toContain('statusLine.type must be \'command\' or \'static\', got \'invalid\'');
+
+      expect(errors).toContain("statusLine.type must be 'command' or 'static', got 'invalid'");
     });
 
     it('should validate command statusLine requires command field', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
         statusLine: {
-          type: 'command'
+          type: 'command',
           // Missing command field
-        }
+        },
       };
-      
+
       const errors = compiler.validateSettings(settings);
-      
+
       expect(errors).toContain('statusLine.command is required when type is "command"');
     });
 
@@ -390,36 +546,36 @@ describe('Hugsy Compiler', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
         statusLine: {
-          type: 'static'
+          type: 'static',
           // Missing value field
-        }
+        },
       };
-      
+
       const errors = compiler.validateSettings(settings);
-      
+
       expect(errors).toContain('statusLine.value is required when type is "static"');
     });
 
     it('should validate numeric fields', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        cleanupPeriodDays: '7' as any
+        cleanupPeriodDays: '7' as number,
       };
-      
+
       const errors = compiler.validateSettings(settings);
-      
+
       expect(errors).toContain('cleanupPeriodDays must be a number, got string');
     });
 
     it('should validate boolean fields', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        includeCoAuthoredBy: 'true' as any,
-        enableAllProjectMcpServers: 1 as any
+        includeCoAuthoredBy: 'true' as boolean,
+        enableAllProjectMcpServers: 1 as boolean,
       };
-      
+
       const errors = compiler.validateSettings(settings);
-      
+
       expect(errors).toContain('includeCoAuthoredBy must be a boolean, got string');
       expect(errors).toContain('enableAllProjectMcpServers must be a boolean, got number');
     });
@@ -430,7 +586,7 @@ describe('Hugsy Compiler', () => {
         permissions: {
           allow: ['Read(**)', 'Write(**/*.ts)'],
           ask: ['Bash(git push *)'],
-          deny: ['Bash(rm -rf /)']
+          deny: ['Bash(rm -rf /)'],
         },
         hooks: {
           PreToolUse: [
@@ -440,27 +596,27 @@ describe('Hugsy Compiler', () => {
                 {
                   type: 'command',
                   command: 'echo "test"',
-                  timeout: 1000
-                }
-              ]
-            }
-          ]
+                  timeout: 1000,
+                },
+              ],
+            },
+          ],
         },
         env: {
           NODE_ENV: 'development',
-          PROJECT: 'test'
+          PROJECT: 'test',
         },
         statusLine: {
           type: 'static',
-          value: 'Hugsy Project'
+          value: 'Hugsy Project',
         },
         cleanupPeriodDays: 7,
         includeCoAuthoredBy: true,
-        enableAllProjectMcpServers: false
+        enableAllProjectMcpServers: false,
       };
-      
+
       const errors = compiler.validateSettings(settings);
-      
+
       expect(errors).toEqual([]);
     });
   });
@@ -471,20 +627,20 @@ describe('Hugsy Compiler', () => {
         permissions: {
           allow: ['Bash(git *)', 'Read(**)'],
           ask: ['Bash(git *)', 'Write(**)'],
-          deny: ['Bash(git *)', 'Delete(**)']
-        }
+          deny: ['Bash(git *)', 'Delete(**)'],
+        },
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       // Bash(git *) should only be in deny
       expect(result.permissions?.deny).toContain('Bash(git *)');
       expect(result.permissions?.ask).not.toContain('Bash(git *)');
       expect(result.permissions?.allow).not.toContain('Bash(git *)');
-      
+
       // Write(**) should stay in ask
       expect(result.permissions?.ask).toContain('Write(**)');
-      
+
       // Read(**) should stay in allow
       expect(result.permissions?.allow).toContain('Read(**)');
     });
@@ -493,16 +649,16 @@ describe('Hugsy Compiler', () => {
       const config: HugsyConfig = {
         permissions: {
           allow: ['Bash(npm *)', 'Read(**)'],
-          ask: ['Bash(npm *)']
-        }
+          ask: ['Bash(npm *)'],
+        },
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       // Bash(npm *) should only be in ask
       expect(result.permissions?.ask).toContain('Bash(npm *)');
       expect(result.permissions?.allow).not.toContain('Bash(npm *)');
-      
+
       // Read(**) should stay in allow
       expect(result.permissions?.allow).toContain('Read(**)');
     });
@@ -510,25 +666,27 @@ describe('Hugsy Compiler', () => {
 
   describe('Plugin System', () => {
     it('should handle missing plugins gracefully', async () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
+        /* no-op */
+      });
+
       const config: HugsyConfig = {
         plugins: ['./plugins/non-existent.js'],
         env: {
-          NODE_ENV: 'test'
-        }
+          NODE_ENV: 'test',
+        },
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       // Should compile successfully even if plugin is missing
       expect(result.env).toEqual({
-        NODE_ENV: 'test'
+        NODE_ENV: 'test',
       });
-      
+
       // Should warn about missing plugin
       expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('not found'));
-      
+
       consoleWarnSpy.mockRestore();
     });
 
@@ -536,15 +694,15 @@ describe('Hugsy Compiler', () => {
       // Test plugin contribution without mocking actual modules
       const config: HugsyConfig = {
         permissions: {
-          allow: ['Read(**)', 'Write(**/*.ts)']
+          allow: ['Read(**)', 'Write(**/*.ts)'],
         },
         env: {
-          NODE_ENV: 'test'
-        }
+          NODE_ENV: 'test',
+        },
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       expect(result.permissions?.allow).toContain('Read(**)');
       expect(result.permissions?.allow).toContain('Write(**/*.ts)');
       expect(result.env?.NODE_ENV).toBe('test');
@@ -553,45 +711,51 @@ describe('Hugsy Compiler', () => {
 
   describe('Error Handling', () => {
     it('should reject array configuration', async () => {
-      const config = [] as any;
-      
-      await expect(compiler.compile(config)).rejects.toThrow('Configuration must be an object, not an array');
+      const config = [] as HugsyConfig;
+
+      await expect(compiler.compile(config)).rejects.toThrow(
+        'Configuration must be an object, not an array'
+      );
     });
 
     it('should reject null configuration', async () => {
-      const config = null as any;
-      
+      const config = null as HugsyConfig;
+
       await expect(compiler.compile(config)).rejects.toThrow('Configuration must be an object');
     });
 
     it('should handle invalid permission format with throwOnError', async () => {
-      const errorCompiler = new Compiler({ 
+      const errorCompiler = new Compiler({
         projectRoot: '/test/project',
-        throwOnError: true 
+        throwOnError: true,
       });
-      
+
       const config: HugsyConfig = {
         permissions: {
-          allow: ['invalid-permission-format']
-        }
+          allow: ['invalid-permission-format'],
+        },
       };
-      
+
       await expect(errorCompiler.compile(config)).rejects.toThrow('Invalid permission format');
     });
 
     it('should warn about invalid permission format without throwOnError', async () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+        /* no-op */
+      });
+
       const config: HugsyConfig = {
         permissions: {
-          allow: ['invalid-permission-format']
-        }
+          allow: ['invalid-permission-format'],
+        },
       };
-      
+
       await compiler.compile(config);
-      
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid permission format'));
-      
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid permission format')
+      );
+
       consoleErrorSpy.mockRestore();
     });
   });
@@ -602,11 +766,11 @@ describe('Hugsy Compiler', () => {
         includeCoAuthoredBy: false,
         cleanupPeriodDays: 14,
         model: 'claude-3-opus',
-        apiKeyHelper: 'helper-script.sh'
+        apiKeyHelper: 'helper-script.sh',
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       expect(result.includeCoAuthoredBy).toBe(false);
       expect(result.cleanupPeriodDays).toBe(14);
       expect(result.model).toBe('claude-3-opus');
@@ -615,9 +779,9 @@ describe('Hugsy Compiler', () => {
 
     it('should not include optional fields when undefined', async () => {
       const config: HugsyConfig = {};
-      
+
       const result = await compiler.compile(config);
-      
+
       expect(result).not.toHaveProperty('includeCoAuthoredBy');
       expect(result).not.toHaveProperty('cleanupPeriodDays');
       expect(result).not.toHaveProperty('model');
@@ -629,80 +793,82 @@ describe('Hugsy Compiler', () => {
     it('should handle preset extends with plugin transforms and hook merging', async () => {
       // Mock preset
       vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-        permissions: {
-          allow: ['Read(**)', 'Write(**/*.js)']
-        },
-        hooks: {
-          PreToolUse: [
-            {
-              matcher: 'Bash',
-              command: 'echo "From preset"'
-            }
-          ]
-        },
-        env: {
-          FROM_PRESET: 'true'
-        }
-      }));
-      
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({
+          permissions: {
+            allow: ['Read(**)', 'Write(**/*.js)'],
+          },
+          hooks: {
+            PreToolUse: [
+              {
+                matcher: 'Bash',
+                command: 'echo "From preset"',
+              },
+            ],
+          },
+          env: {
+            FROM_PRESET: 'true',
+          },
+        })
+      );
+
       const config: HugsyConfig = {
         extends: '@hugsylabs/hugsy-compiler/presets/test',
         permissions: {
           allow: ['Write(**/*.ts)'],
-          deny: ['Bash(rm *)']
+          deny: ['Bash(rm *)'],
         },
         hooks: {
           PreToolUse: [
             {
               matcher: 'Bash',
-              command: 'echo "From config"'
+              command: 'echo "From config"',
             },
             {
               matcher: 'Write',
-              command: 'echo "Write hook"'
-            }
-          ]
+              command: 'echo "Write hook"',
+            },
+          ],
         },
         env: {
-          FROM_CONFIG: 'true'
-        }
+          FROM_CONFIG: 'true',
+        },
       };
-      
+
       const result = await compiler.compile(config);
-      
+
       // Should merge permissions
       expect(result.permissions?.allow).toContain('Read(**)');
       expect(result.permissions?.allow).toContain('Write(**/*.js)');
       expect(result.permissions?.allow).toContain('Write(**/*.ts)');
       expect(result.permissions?.deny).toContain('Bash(rm *)');
-      
+
       // Should merge hooks with same matcher
-      const bashHooks = result.hooks?.PreToolUse?.find(h => h.matcher === 'Bash');
+      const bashHooks = result.hooks?.PreToolUse?.find((h) => h.matcher === 'Bash');
       expect(bashHooks?.hooks).toHaveLength(2);
-      
+
       // Should have separate Write hook
-      const writeHooks = result.hooks?.PreToolUse?.find(h => h.matcher === 'Write');
+      const writeHooks = result.hooks?.PreToolUse?.find((h) => h.matcher === 'Write');
       expect(writeHooks?.hooks).toHaveLength(1);
-      
+
       // Should merge env
       expect(result.env).toEqual({
         FROM_PRESET: 'true',
-        FROM_CONFIG: 'true'
+        FROM_CONFIG: 'true',
       });
     });
 
     it('should handle missing presets gracefully', async () => {
       // Mock file system to simulate missing presets
       vi.mocked(fs.existsSync).mockReturnValue(false);
-      
+
       const config: HugsyConfig = {
-        extends: '@hugsylabs/hugsy-compiler/presets/non-existent'
+        extends: '@hugsylabs/hugsy-compiler/presets/non-existent',
       };
-      
+
       // Should not throw, just use empty preset
       const result = await compiler.compile(config);
-      
+
       expect(result).toBeDefined();
       expect(result.$schema).toBe('https://json.schemastore.org/claude-code-settings.json');
     });

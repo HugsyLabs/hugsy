@@ -13,29 +13,33 @@ export const api = {
     await fetch(`${API_BASE}/hugsyrc`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content })
+      body: JSON.stringify({ content }),
     });
   },
 
   // Compile settings
-  async compile(): Promise<{ settings: any; output: string; error?: string }> {
+  async compile(): Promise<{
+    settings: Record<string, unknown> | null;
+    output: string;
+    error?: string;
+  }> {
     const response = await fetch(`${API_BASE}/compile`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
     return response.json();
   },
 
   // Get commands
   async getCommands(): Promise<{
-    commands: Array<{
+    commands: {
       name: string;
-      files: Array<{
+      files: {
         name: string;
         path: string;
         content: string;
-      }>;
-    }>;
+      }[];
+    }[];
   }> {
     const response = await fetch(`${API_BASE}/commands`);
     return response.json();
@@ -46,7 +50,7 @@ export const api = {
     await fetch(`${API_BASE}/commands`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path, content })
+      body: JSON.stringify({ path, content }),
     });
   },
 
@@ -55,29 +59,29 @@ export const api = {
     await fetch(`${API_BASE}/commands`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path })
+      body: JSON.stringify({ path }),
     });
   },
 
   // Install settings using hugsy install
-  async installSettings(force = false): Promise<{ 
-    settings?: any; 
-    output: string; 
+  async installSettings(force = false): Promise<{
+    settings?: Record<string, unknown> | null;
+    output: string;
     error?: string;
     message: string;
   }> {
     const response = await fetch(`${API_BASE}/install`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ force })
+      body: JSON.stringify({ force }),
     });
-    
+
     const result = await response.json();
-    
+
     if (!response.ok) {
-      throw new Error(result.error || 'Failed to install settings');
+      throw new Error(result.error ?? 'Failed to install settings');
     }
-    
+
     return result;
-  }
+  },
 };
