@@ -83,7 +83,7 @@ describe('Slash Commands Integration Tests', () => {
       cleanupTestEnvironment(testDir);
     });
 
-    it('should compile slash commands from multiple sources', async () => {
+    it('should compile slash commands from multiple sources', () => {
       // Create .hugsyrc.json with commands configuration
       const config = {
         permissions: {
@@ -93,7 +93,7 @@ describe('Slash Commands Integration Tests', () => {
         commands: {
           // Reference the built-in preset
           presets: [
-            join(__dirname, '..', 'packages', 'compiler', 'presets', 'slash-commands-common.json'),
+            join(__dirname, '..', 'packages', 'core', 'presets', 'slash-commands-common.json'),
           ],
 
           // Load local markdown files
@@ -186,7 +186,7 @@ describe('Slash Commands Integration Tests', () => {
       cleanupTestEnvironment(testDir);
     });
 
-    it('should process commands from YAML config', async () => {
+    it('should process commands from YAML config', () => {
       // Create .hugsyrc.yml with commands
       const yamlConfig = `permissions:
   allow:
@@ -240,7 +240,7 @@ commands:
       cleanupTestEnvironment(testDir);
     });
 
-    it('should remove stale commands on force reinstall', async () => {
+    it('should remove stale commands on force reinstall', () => {
       // First install with a stale command
       const initialConfig = {
         permissions: { allow: ['Read(**)'] },

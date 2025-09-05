@@ -8,7 +8,7 @@ import { join } from 'path';
 import prompts from 'prompts';
 import { logger } from '../utils/logger.js';
 import { ProjectConfig } from '../utils/project-config.js';
-import { Compiler } from '@hugsylabs/hugsy-compiler';
+import { Compiler } from '@hugsylabs/hugsy-core';
 import { removeFromHugsyConfig } from '../utils/package-manager.js';
 
 export function uninstallCommand(): Command {
@@ -24,7 +24,7 @@ export function uninstallCommand(): Command {
       // If packages are provided, uninstall them
       if (packages && packages.length > 0) {
         logger.section('Uninstalling Packages');
-        
+
         try {
           // Check if .hugsyrc.json exists
           if (!ProjectConfig.exists()) {
@@ -38,11 +38,13 @@ export function uninstallCommand(): Command {
           for (const pkg of packages) {
             logger.divider();
             logger.info(`Removing ${pkg} from configuration...`);
-            
+
             const removed = removeFromHugsyConfig(pkg);
             if (removed) {
               hasChanges = true;
-              logger.info(`ℹ️  Package ${pkg} remains in node_modules (use npm/yarn/pnpm to uninstall)`);
+              logger.info(
+                `ℹ️  Package ${pkg} remains in node_modules (use npm/yarn/pnpm to uninstall)`
+              );
             }
           }
 

@@ -40,6 +40,7 @@ lerna-debug.log*
 
 # Claude Code local settings
 .claude/settings.local.json
+.claude/settings.json.backup.*
 
 # Temporary files
 tmp/

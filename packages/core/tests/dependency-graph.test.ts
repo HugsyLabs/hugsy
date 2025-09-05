@@ -18,7 +18,7 @@ describe('DependencyGraph', () => {
       ]);
 
       const error = graph.detectCycles(dependencies);
-      
+
       expect(error).not.toBeNull();
       expect(error?.cycle).toContain('A');
       expect(error?.cycle).toContain('B');
@@ -33,19 +33,17 @@ describe('DependencyGraph', () => {
       ]);
 
       const error = graph.detectCycles(dependencies);
-      
+
       expect(error).not.toBeNull();
       expect(error?.cycle).toEqual(['A', 'B', 'C', 'A']);
       expect(error?.path).toBe('A -> B -> C -> A');
     });
 
     it('should detect self-reference: A -> A', () => {
-      const dependencies = new Map<string, string | string[]>([
-        ['A', 'A'],
-      ]);
+      const dependencies = new Map<string, string | string[]>([['A', 'A']]);
 
       const error = graph.detectCycles(dependencies);
-      
+
       expect(error).not.toBeNull();
       expect(error?.cycle).toEqual(['A', 'A']);
       expect(error?.message).toContain('A -> A');
@@ -59,7 +57,7 @@ describe('DependencyGraph', () => {
       ]);
 
       const error = graph.detectCycles(dependencies);
-      
+
       expect(error).toBeNull();
     });
 
@@ -72,7 +70,7 @@ describe('DependencyGraph', () => {
       ]);
 
       const error = graph.detectCycles(dependencies);
-      
+
       expect(error).toBeNull();
     });
 
@@ -86,7 +84,7 @@ describe('DependencyGraph', () => {
       ]);
 
       const error = graph.detectCycles(dependencies);
-      
+
       expect(error).not.toBeNull();
       expect(error?.cycle).toContain('A');
       expect(error?.cycle).toContain('F');
@@ -104,7 +102,7 @@ describe('DependencyGraph', () => {
       ]);
 
       const error = graph.detectCycles(dependencies);
-      
+
       expect(error).not.toBeNull();
       expect(error?.cycle).toContain('D');
       expect(error?.cycle).toContain('E');
@@ -115,7 +113,7 @@ describe('DependencyGraph', () => {
       const dependencies = new Map<string, string | string[]>();
 
       const error = graph.detectCycles(dependencies);
-      
+
       expect(error).toBeNull();
     });
   });
@@ -129,18 +127,18 @@ describe('DependencyGraph', () => {
       ]);
 
       const order = graph.getLoadOrder(dependencies);
-      
+
       expect(order).not.toBeNull();
       expect(order).toHaveLength(4);
-      
+
       // C should come before B and D
       const cIndex = order!.indexOf('C');
       const bIndex = order!.indexOf('B');
       const dIndex = order!.indexOf('D');
-      
+
       expect(cIndex).toBeLessThan(bIndex);
       expect(cIndex).toBeLessThan(dIndex);
-      
+
       // B should come before A
       const aIndex = order!.indexOf('A');
       expect(bIndex).toBeLessThan(aIndex);
@@ -154,7 +152,7 @@ describe('DependencyGraph', () => {
       ]);
 
       const order = graph.getLoadOrder(dependencies);
-      
+
       expect(order).toBeNull();
     });
 
@@ -166,18 +164,18 @@ describe('DependencyGraph', () => {
       ]);
 
       const order = graph.getLoadOrder(dependencies);
-      
+
       expect(order).not.toBeNull();
       expect(order).toHaveLength(4);
-      
+
       // D should come first
       expect(order![0]).toBe('D');
-      
+
       // C should come before A and B
       const cIndex = order!.indexOf('C');
       const aIndex = order!.indexOf('A');
       const bIndex = order!.indexOf('B');
-      
+
       expect(cIndex).toBeLessThan(aIndex);
       expect(cIndex).toBeLessThan(bIndex);
     });
@@ -190,14 +188,14 @@ describe('DependencyGraph', () => {
       ]);
 
       const order = graph.getLoadOrder(dependencies);
-      
+
       expect(order).not.toBeNull();
       expect(order).toHaveLength(4);
       expect(order).toContain('A');
       expect(order).toContain('B');
       expect(order).toContain('C');
       expect(order).toContain('D');
-      
+
       // B should come before A
       const bIndex = order!.indexOf('B');
       const aIndex = order!.indexOf('A');
@@ -208,7 +206,7 @@ describe('DependencyGraph', () => {
       const dependencies = new Map<string, string | string[]>();
 
       const order = graph.getLoadOrder(dependencies);
-      
+
       expect(order).not.toBeNull();
       expect(order).toHaveLength(0);
     });
@@ -223,7 +221,7 @@ describe('DependencyGraph', () => {
       ]);
 
       const error = DependencyGraph.detectConfigCycles('config1', configs);
-      
+
       expect(error).not.toBeNull();
       expect(error?.message).toContain('Circular dependency detected in presets');
       expect(error?.cycle).toContain('config1');
@@ -239,7 +237,7 @@ describe('DependencyGraph', () => {
       ]);
 
       const error = DependencyGraph.detectConfigCycles('config1', configs);
-      
+
       expect(error).not.toBeNull();
       expect(error?.cycle).toContain('config1');
       expect(error?.cycle).toContain('config3');
@@ -253,17 +251,15 @@ describe('DependencyGraph', () => {
       ]);
 
       const error = DependencyGraph.detectConfigCycles('config1', configs);
-      
+
       expect(error).toBeNull();
     });
 
     it('should handle configs without extends', () => {
-      const configs = new Map<string, HugsyConfig>([
-        ['config1', { permissions: { allow: [] } }],
-      ]);
+      const configs = new Map<string, HugsyConfig>([['config1', { permissions: { allow: [] } }]]);
 
       const error = DependencyGraph.detectConfigCycles('config1', configs);
-      
+
       expect(error).toBeNull();
     });
   });
@@ -277,7 +273,7 @@ describe('DependencyGraph', () => {
       };
 
       const formatted = DependencyGraph.formatCycleError(error);
-      
+
       expect(formatted).toContain('❌ Circular dependency detected!');
       expect(formatted).toContain('Dependency chain:');
       expect(formatted).toContain('1. A → B');
@@ -295,7 +291,7 @@ describe('DependencyGraph', () => {
       };
 
       const formatted = DependencyGraph.formatCycleError(error);
-      
+
       expect(formatted).toContain('❌ Circular dependency detected!');
       expect(formatted).toContain('1. A → A');
       expect(formatted).toContain('Remove the extends reference from A to A');
@@ -309,7 +305,7 @@ describe('DependencyGraph', () => {
       };
 
       const formatted = DependencyGraph.formatCycleError(error);
-      
+
       expect(formatted).toContain('Remove the extends reference from preset2 to preset1');
       expect(formatted).toContain('Or restructure your presets to avoid circular dependencies');
     });

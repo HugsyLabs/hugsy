@@ -36,7 +36,7 @@
   },
   "homepage": "https://github.com/HugsyLab/hugsy#readme",
   "dependencies": {
-    "@hugsylabs/hugsy-compiler": "^0.1.9",
+    "@hugsylabs/hugsy-core": "^0.1.9",
     "@hugsylabs/hugsy-types": "^0.0.7",
     "chalk": "^5.3.0",
     "commander": "^11.1.0",
