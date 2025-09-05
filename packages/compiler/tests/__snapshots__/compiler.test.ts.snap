@@ -2,6 +2,7 @@
 
 exports[`Compiler > Snapshot Testing > should match snapshot for complete configuration > complete-configuration-output 1`] = `
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "cleanupPeriodDays": 30,
   "env": {
     "API_URL": "https://api.example.com",
@@ -14,6 +15,7 @@ exports[`Compiler > Snapshot Testing > should match snapshot for complete config
         "hooks": [
           {
             "command": "eslint --fix",
+            "timeout": 3000,
             "type": "command",
           },
         ],
@@ -57,9 +59,9 @@ exports[`Compiler > Snapshot Testing > should match snapshot for complete config
 
 exports[`Compiler > Snapshot Testing > should match snapshot for minimal configuration > minimal-configuration-output 1`] = `
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {},
   "hooks": {},
-  "model": undefined,
   "permissions": {
     "allow": [
       "Read(**)",
@@ -67,6 +69,5 @@ exports[`Compiler > Snapshot Testing > should match snapshot for minimal configu
     "ask": [],
     "deny": [],
   },
-  "statusLine": undefined,
 }
 `;

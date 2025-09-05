@@ -3,7 +3,7 @@
  */
 
 import { Command } from 'commander';
-import { existsSync, mkdirSync, writeFileSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
 import { join } from 'path';
 import prompts from 'prompts';
 import { logger } from '../utils/logger.js';
@@ -222,7 +222,85 @@ export function installCommand(): Command {
           '.claude/settings.json',
           'Compiled Claude Code settings from your .hugsyrc.json'
         );
-        logger.warning('Make sure to commit .claude/settings.json to version control');
+        
+        // Check if .claude is in .gitignore
+        const gitignorePath = join(process.cwd(), '.gitignore');
+        let shouldShowCommitWarning = false; // Default to false - only show if in gitignore
+        
+        if (existsSync(gitignorePath)) {
+          try {
+            const gitignoreContent = readFileSync(gitignorePath, 'utf-8');
+            // Check if .claude or .claude/ is in gitignore
+            const lines = gitignoreContent.split('\n');
+            const hasClaudeIgnored = lines.some(line => {
+              const trimmed = line.trim();
+              // Skip comments and empty lines
+              if (!trimmed || trimmed.startsWith('#')) return false;
+              
+              // Check for various patterns that would ignore .claude, .claude/settings.json, or .claude/commands
+              // We specifically check if these critical files would be ignored
+              
+              // Direct matches for whole .claude directory
+              if (trimmed === '.claude' || 
+                  trimmed === '.claude/' || 
+                  trimmed === '/.claude' ||
+                  trimmed === '/.claude/' ||
+                  trimmed === '.claude/*' ||
+                  trimmed === '.claude/**') {
+                return true;
+              }
+              
+              // Direct matches for settings.json
+              if (trimmed === '.claude/settings.json' ||
+                  trimmed === '/.claude/settings.json') {
+                return true;
+              }
+              
+              // Direct matches for commands directory
+              if (trimmed === '.claude/commands' ||
+                  trimmed === '.claude/commands/' ||
+                  trimmed === '.claude/commands/*' ||
+                  trimmed === '.claude/commands/**') {
+                return true;
+              }
+              
+              // Wildcard patterns that would match settings.json or commands
+              if (trimmed.includes('*')) {
+                // Patterns that would match settings.json
+                if (trimmed === '.claude/*.json' || 
+                    trimmed === '.claude/settings.*' ||
+                    trimmed === '.claude/*.settings.json') {
+                  return true;
+                }
+                // Patterns that would match commands directory
+                if (trimmed === '.claude/comm*' ||
+                    trimmed === '.claude/*/') {
+                  return true;
+                }
+              }
+              
+              return false;
+            });
+            
+            if (hasClaudeIgnored) {
+              shouldShowCommitWarning = true; // Show warning because it's ignored
+              if (options.verbose) {
+                logger.info('.claude directory is in .gitignore, will show commit warning');
+              }
+            } else if (options.verbose) {
+              logger.info('.claude directory is NOT in .gitignore, skipping commit warning');
+            }
+          } catch {
+            // If we can't read .gitignore, show the warning anyway
+            if (options.verbose) {
+              logger.warning('Could not read .gitignore, showing commit warning');
+            }
+          }
+        }
+        
+        if (shouldShowCommitWarning) {
+          logger.warning('Make sure to commit .claude/settings.json to version control');
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         logger.error(`Installation failed: ${errorMessage}`);
