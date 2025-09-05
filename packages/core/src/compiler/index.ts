@@ -16,6 +16,8 @@ import type {
   Preset,
   SlashCommand,
   SlashCommandsConfig,
+  Subagent,
+  SubagentsConfig,
   StatusLineConfig,
   HookConfig,
 } from '@hugsylabs/hugsy-types';
@@ -42,6 +44,7 @@ export class Compiler {
   private plugins = new Map<string, Plugin>();
   private presetsCache = new Map<string, HugsyConfig>();
   private compiledCommands = new Map<string, SlashCommand>();
+  private compiledSubagents = new Map<string, Subagent>();
   private options: CompilerOptions;
 
   constructor(optionsOrRoot?: CompilerOptions | string) {
@@ -352,6 +355,9 @@ export class Compiler {
     // Compile slash commands
     const commands = await this.compileCommands(transformedConfig);
 
+    // Compile subagents
+    const subagents = await this.compileSubagents(transformedConfig);
+
     // Build the final settings using transformed config
     const settings: ClaudeSettings = {
       $schema: 'https://json.schemastore.org/claude-code-settings.json',
@@ -373,8 +379,9 @@ export class Compiler {
       }),
     };
 
-    // Store commands for later file generation
+    // Store commands and subagents for later file generation
     this.compiledCommands = commands;
+    this.compiledSubagents = subagents;
 
     // Add optional settings
     if (transformedConfig.apiKeyHelper) settings.apiKeyHelper = transformedConfig.apiKeyHelper;
@@ -1192,6 +1199,194 @@ export class Compiler {
   }
 
   /**
+   * Compile subagents from presets, plugins, and user config
+   */
+  private async compileSubagents(config: HugsyConfig): Promise<Map<string, Subagent>> {
+    const subagents = new Map<string, Subagent>();
+
+    // 1. Collect from presets (lowest priority)
+    for (const preset of this.presets.values()) {
+      if (preset.subagents) {
+        // Presets might have different subagent formats
+        if (Array.isArray(preset.subagents)) {
+          // Skip array format - these are preset references, not actual subagents
+          continue;
+        } else if ('agents' in preset.subagents) {
+          // SubagentsConfig with nested agents
+          const agentConfig = preset.subagents;
+          if (agentConfig.agents) {
+            this.mergeSubagents(subagents, agentConfig.agents);
+          }
+        } else {
+          // Direct subagent mapping (shouldn't happen but handle it)
+          this.mergeSubagents(subagents, preset.subagents as Record<string, string | Subagent>);
+        }
+      }
+    }
+
+    // 2. Collect from plugins (medium priority)
+    for (const plugin of this.plugins.values()) {
+      if ((plugin as Record<string, unknown>).subagents) {
+        this.mergeSubagents(
+          subagents,
+          (plugin as Record<string, unknown>).subagents as Record<string, string | Subagent>
+        );
+      }
+    }
+
+    // 3. Process user config (highest priority)
+    if (config.subagents) {
+      await this.processUserSubagents(subagents, config.subagents);
+    }
+
+    this.log(`Compiled ${subagents.size} subagent(s)`);
+    return subagents;
+  }
+
+  /**
+   * Process user subagent configuration
+   */
+  private async processUserSubagents(
+    subagents: Map<string, Subagent>,
+    userSubagents: SubagentsConfig | string[]
+  ): Promise<void> {
+    // Handle shorthand array syntax (list of preset names)
+    if (Array.isArray(userSubagents)) {
+      for (const presetName of userSubagents) {
+        const preset = await this.loadModule<Record<string, unknown>>(
+          presetName,
+          'subagent-preset'
+        );
+        if (
+          preset?.subagents &&
+          typeof preset.subagents === 'object' &&
+          preset.subagents !== null
+        ) {
+          this.mergeSubagents(subagents, preset.subagents as Record<string, string | Subagent>);
+        }
+      }
+      return;
+    }
+
+    // Handle full config object
+    const config = userSubagents;
+
+    // Load subagent presets
+    if (config.presets) {
+      for (const presetName of config.presets) {
+        const preset = await this.loadModule<Record<string, unknown>>(
+          presetName,
+          'subagent-preset'
+        );
+        if (
+          preset?.subagents &&
+          typeof preset.subagents === 'object' &&
+          preset.subagents !== null
+        ) {
+          this.mergeSubagents(subagents, preset.subagents as Record<string, string | Subagent>);
+        }
+      }
+    }
+
+    // Load subagent files (glob patterns)
+    if (config.files) {
+      await this.loadSubagentFiles(subagents, config.files);
+    }
+
+    // Apply direct subagent definitions (highest priority)
+    if (config.agents) {
+      this.mergeSubagents(subagents, config.agents);
+    }
+  }
+
+  /**
+   * Load subagents from local markdown files
+   */
+  private async loadSubagentFiles(
+    subagents: Map<string, Subagent>,
+    patterns: string[]
+  ): Promise<void> {
+    try {
+      // Dynamic import of glob module
+      const { glob } = await import('glob');
+      const matter = await import('gray-matter');
+
+      for (const pattern of patterns) {
+        const files = await glob(pattern, { cwd: this.projectRoot });
+
+        for (const file of files) {
+          const fullPath = resolve(this.projectRoot, file);
+          const content = readFileSync(fullPath, 'utf-8');
+          const parsed = matter.default(content);
+
+          // Extract subagent name from filename or frontmatter
+          const fileName =
+            file
+              .split('/')
+              .pop()
+              ?.replace(/\.(md|markdown)$/, '') ?? 'unnamed';
+          const name = (parsed.data.name as string) ?? fileName;
+
+          // Parse tools - handle both array and comma-separated string formats
+          let tools: string[] | undefined;
+          if (parsed.data.tools) {
+            if (Array.isArray(parsed.data.tools)) {
+              tools = parsed.data.tools as string[];
+            } else if (typeof parsed.data.tools === 'string') {
+              tools = parsed.data.tools.split(',').map((t: string) => t.trim());
+            }
+          }
+
+          const subagent: Subagent = {
+            name,
+            description: (parsed.data.description as string) ?? `Subagent ${name}`,
+            tools,
+            content: parsed.content.trim(),
+          };
+
+          subagents.set(name, subagent);
+        }
+      }
+    } catch (error) {
+      this.handleError(
+        `Failed to load subagent files: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Merge subagents with proper override logic
+   */
+  private mergeSubagents(
+    target: Map<string, Subagent>,
+    source: Record<string, string | Subagent>
+  ): void {
+    for (const [name, value] of Object.entries(source)) {
+      if (typeof value === 'string') {
+        // Simple string content
+        target.set(name, {
+          name,
+          description: `Subagent ${name}`,
+          content: value,
+        });
+      } else {
+        // Full subagent object
+        target.set(name, {
+          ...value,
+          name, // Ensure name is set
+        });
+      }
+    }
+  }
+
+  /**
+   * Get compiled subagents (for use by CLI and UI)
+   */
+  public getCompiledSubagents(): Map<string, Subagent> {
+    return this.compiledSubagents;
+  }
+
+  /**
    * Compile environment variables
    * Merge strategy: presets < plugins < user config (later overrides earlier)
    * All values are converted to strings as required by Claude settings
@@ -1370,17 +1565,23 @@ export class Compiler {
       return this.presetsCache.get(moduleName) as T;
     }
 
-    // Handle @hugsylabs/hugsy-compiler/* presets (built-in presets)
-    // Also support legacy @hugsy/* for backward compatibility
-    if (moduleName.startsWith('@hugsylabs/hugsy-compiler/') || moduleName.startsWith('@hugsy/')) {
+    // Handle @hugsylabs/hugsy-core/* presets (built-in presets)
+    // Also support legacy @hugsylabs/hugsy-compiler/* and @hugsy/* for backward compatibility
+    if (
+      moduleName.startsWith('@hugsylabs/hugsy-core/') ||
+      moduleName.startsWith('@hugsylabs/hugsy-compiler/') ||
+      moduleName.startsWith('@hugsy/')
+    ) {
       const presetName = moduleName
+        .replace('@hugsylabs/hugsy-core/presets/', '')
         .replace('@hugsylabs/hugsy-compiler/presets/', '')
+        .replace('@hugsylabs/hugsy-core/', '')
         .replace('@hugsylabs/hugsy-compiler/', '')
         .replace('@hugsy/', '');
       const builtinPath = resolve(
         this.projectRoot,
         'packages',
-        'compiler',
+        'core',
         'presets',
         `${presetName}.json`
       );
@@ -1388,12 +1589,12 @@ export class Compiler {
       // Try to find in node_modules first (for installed packages)
       // Then try local development path
       const possiblePaths = [
-        // For @hugsylabs/hugsy-compiler package
+        // For @hugsylabs/hugsy-core package
         resolve(
           this.projectRoot,
           'node_modules',
           '@hugsylabs',
-          'hugsy-compiler',
+          'hugsy-core',
           'presets',
           `${presetName}.json`
         ),
@@ -1401,7 +1602,7 @@ export class Compiler {
           this.projectRoot,
           'node_modules',
           '@hugsylabs',
-          'hugsy-compiler',
+          'hugsy-core',
           'dist',
           'presets',
           `${presetName}.json`

@@ -2,23 +2,25 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { ConfigEditor } from './components/ConfigEditor';
-import { LogViewer } from './components/LogViewer';
 import { Sidebar } from './components/Sidebar';
-import { PresetManager } from './components/PresetManager';
-import { PluginManager } from './components/PluginManager';
-import { SlashCommands } from './components/SlashCommands';
 import { InitWizard } from './components/InitWizard';
 import { api } from './services/api';
 import useStore from './store';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 
 function App() {
   const { activeTab, theme, loadExistingSettings } = useStore();
   const [configExists, setConfigExists] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(true);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+
+  // Initialize keyboard shortcuts
+  useKeyboardShortcuts(() => setShowShortcutsHelp(true));
 
   useEffect(() => {
     // Check if configuration exists
-    const checkConfig = async () => {
+    const initialize = async () => {
       try {
         const exists = await api.checkConfigExists();
         setConfigExists(exists);
@@ -28,7 +30,7 @@ function App() {
           void loadExistingSettings();
         }
       } catch (error) {
-        console.error('Failed to check configuration:', error);
+        console.error('Failed to initialize:', error);
         // Assume config doesn't exist if check fails
         setConfigExists(false);
       } finally {
@@ -36,7 +38,7 @@ function App() {
       }
     };
 
-    void checkConfig();
+    void initialize();
   }, [loadExistingSettings]);
 
   useEffect(() => {
@@ -49,20 +51,8 @@ function App() {
   }, [theme]);
 
   const renderContent = () => {
-    switch (activeTab) {
-      case 'editor':
-        return <ConfigEditor />;
-      case 'commands':
-        return <SlashCommands />;
-      case 'presets':
-        return <PresetManager />;
-      case 'plugins':
-        return <PluginManager />;
-      case 'logs':
-        return <LogViewer fullScreen />;
-      default:
-        return <ConfigEditor />;
-    }
+    // Since we only have editor now, always return ConfigEditor
+    return <ConfigEditor />;
   };
 
   // Show loading state while checking
@@ -97,7 +87,7 @@ function App() {
       <div className="relative h-screen">
         <PanelGroup direction="horizontal" className="h-full">
           {/* Sidebar Panel */}
-          <Panel defaultSize={15} minSize={12} maxSize={20}>
+          <Panel defaultSize={12} minSize={10} maxSize={18}>
             <Sidebar />
           </Panel>
 
@@ -143,6 +133,12 @@ function App() {
           </Panel>
         </PanelGroup>
       </div>
+
+      {/* Keyboard shortcuts help modal */}
+      <KeyboardShortcutsHelp
+        isOpen={showShortcutsHelp}
+        onClose={() => setShowShortcutsHelp(false)}
+      />
     </div>
   );
 }

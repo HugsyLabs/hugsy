@@ -18,6 +18,7 @@ import {
   Folder,
   FileText,
   X,
+  Bot,
 } from 'lucide-react';
 import useStore from '../store';
 import { cn } from '../utils/cn';
@@ -43,6 +44,7 @@ export function ConfigEditor() {
     setConfig,
     compiledSettings,
     compiledCommands,
+    compiledSubagents,
     compilationError,
     editorLayout,
     toggleEditorLayout,
@@ -57,12 +59,23 @@ export function ConfigEditor() {
     setShowForceInstallDialog,
   } = useStore();
   const [editorError, setEditorError] = useState<string | null>(null);
-  const [outputTab, setOutputTab] = useState<'settings' | 'commands'>('settings');
+  const [outputTab, setOutputTab] = useState<'settings' | 'commands' | 'subagents'>('settings');
   const [selectedCommand, setSelectedCommand] = useState<CommandFile | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
     new Set(['git', 'development', 'documentation', 'release'])
   );
   const [commandFolders, setCommandFolders] = useState<CommandFolder[]>([]);
+  const [selectedSubagent, setSelectedSubagent] = useState<string | null>(null);
+
+  // Auto-select first subagent when tab changes or subagents load
+  useEffect(() => {
+    if (outputTab === 'subagents' && compiledSubagents && !selectedSubagent) {
+      const firstAgent = Object.keys(compiledSubagents)[0];
+      if (firstAgent) {
+        setSelectedSubagent(firstAgent);
+      }
+    }
+  }, [outputTab, compiledSubagents, selectedSubagent]);
   const [hugsyrcContent, setHugsyrcContent] = useState<string>('');
 
   // Fetch real data on mount (load both in parallel for better performance)
@@ -515,6 +528,13 @@ export function ConfigEditor() {
                 <div className="h-[42px] bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800 flex items-center">
                   <div className="flex items-center justify-between w-full px-4">
                     <div className="flex items-center">
+                      <div className="relative group mr-2">
+                        <AlertCircle className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                        <div className="absolute top-full left-0 mt-2 px-2 py-1 bg-white dark:bg-gray-100 text-gray-700 text-xs rounded shadow-lg border border-gray-200 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+                          Files will be generated in .claude/ directory
+                          <div className="absolute bottom-full left-2 -mb-1 w-0 h-0 border-4 border-transparent border-b-white dark:border-b-gray-100"></div>
+                        </div>
+                      </div>
                       <button
                         onClick={() => setOutputTab('settings')}
                         className={cn(
@@ -532,7 +552,7 @@ export function ConfigEditor() {
                       <button
                         onClick={() => setOutputTab('commands')}
                         className={cn(
-                          'px-3 py-1.5 text-sm font-medium',
+                          'px-3 py-1.5 text-sm font-medium mr-2',
                           outputTab === 'commands'
                             ? 'text-primary-600 dark:text-primary-400'
                             : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
@@ -541,6 +561,20 @@ export function ConfigEditor() {
                         <div className="flex items-center space-x-2">
                           <Command className="w-3.5 h-3.5" />
                           <span>/commands</span>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setOutputTab('subagents')}
+                        className={cn(
+                          'px-3 py-1.5 text-sm font-medium',
+                          outputTab === 'subagents'
+                            ? 'text-primary-600 dark:text-primary-400'
+                            : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                        )}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Bot className="w-3.5 h-3.5" />
+                          <span>agents</span>
                         </div>
                       </button>
                     </div>
@@ -555,7 +589,7 @@ export function ConfigEditor() {
                       theme={editorTheme}
                       options={readOnlyEditorOptions}
                     />
-                  ) : (
+                  ) : outputTab === 'commands' ? (
                     <div className="h-full flex">
                       {/* File Explorer - Compact Style */}
                       <div className="w-48 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col flex-shrink-0">
@@ -721,6 +755,108 @@ export function ConfigEditor() {
                                 </h3>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
                                   Choose a command from the explorer to view or edit
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    // Subagents view - similar to commands
+                    <div className="h-full flex">
+                      {/* Agent Explorer */}
+                      <div className="w-48 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col flex-shrink-0">
+                        {/* Explorer Header */}
+                        <div className="h-[42px] px-3 flex items-center border-b border-gray-200 dark:border-gray-800">
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center space-x-1.5">
+                              <Bot className="w-3.5 h-3.5 text-primary-500 dark:text-primary-400" />
+                              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                agents
+                              </span>
+                            </div>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {compiledSubagents ? Object.keys(compiledSubagents).length : 0}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Agent List */}
+                        <div className="flex-1 overflow-y-auto">
+                          {compiledSubagents &&
+                            Object.entries(compiledSubagents).map(([name]) => (
+                              <button
+                                key={name}
+                                onClick={() => setSelectedSubagent(name)}
+                                className={cn(
+                                  'w-full flex items-center px-3 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-800 text-sm',
+                                  selectedSubagent === name
+                                    ? 'bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
+                                    : 'text-gray-700 dark:text-gray-300'
+                                )}
+                              >
+                                <FileText className="w-3.5 h-3.5 mr-2 flex-shrink-0" />
+                                <span className="truncate">{name}.md</span>
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+
+                      {/* Agent Content */}
+                      <div className="flex-1 flex flex-col">
+                        {selectedSubagent && compiledSubagents?.[selectedSubagent] ? (
+                          <>
+                            {/* File Header */}
+                            <div className="h-[42px] bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <Bot className="w-4 h-4 text-gray-400" />
+                                <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {selectedSubagent}.md
+                                </h3>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {compiledSubagents[selectedSubagent].description}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                {compiledSubagents[selectedSubagent].tools && (
+                                  <span className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded">
+                                    {compiledSubagents[selectedSubagent].tools?.length} tools
+                                  </span>
+                                )}
+                                <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">
+                                  Markdown
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                              <LazyEditor
+                                key={selectedSubagent}
+                                height="100%"
+                                defaultLanguage="markdown"
+                                value={compiledSubagents[selectedSubagent].content}
+                                theme={editorTheme}
+                                options={readOnlyEditorOptions}
+                              />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* Empty State */}
+                            <div className="flex-1 flex items-center justify-center">
+                              <div className="text-center">
+                                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center mx-auto mb-4">
+                                  <Bot className="w-8 h-8 text-gray-400 dark:text-gray-600" />
+                                </div>
+                                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                                  {compiledSubagents && Object.keys(compiledSubagents).length > 0
+                                    ? 'Select an agent'
+                                    : 'No agents configured'}
+                                </h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {compiledSubagents && Object.keys(compiledSubagents).length > 0
+                                    ? 'Choose an agent from the explorer to view'
+                                    : 'Add agents to your configuration to see them here'}
                                 </p>
                               </div>
                             </div>

@@ -906,7 +906,7 @@ export default {
         permissions: {
           allow: ['Read(**)'],
         },
-        环境变量: 'test', // Chinese field name
+        环境变量: 'test', // Non-ASCII field name (Chinese)
       };
 
       await expect(compiler.compile(config)).rejects.toThrow(
@@ -1570,8 +1570,8 @@ export default {
 
         expect(result.includeCoAuthoredBy).toBe(true);
         expect(result.cleanupPeriodDays).toBe(7);
-        expect(result.env.BASE).toBe('value');
-        expect(result.env.TEST).toBe('value');
+        expect(result.env?.BASE).toBe('value');
+        expect(result.env?.TEST).toBe('value');
       });
 
       it('should allow child config to override inherited values', async () => {
@@ -1597,14 +1597,14 @@ export default {
     describe('Plugin validate function', () => {
       it('should call plugin validate function and show warnings', async () => {
         // Create new compiler without throwOnError
-        const testCompiler = new Compiler({ root: TEST_DIR, verbose: false });
+        const testCompiler = new Compiler({ projectRoot: TEST_DIR, verbose: false });
 
         const mockPlugin = {
           name: 'test-validate',
           validate: (_config: HugsyConfig) => ['Test error 1', 'Test error 2'],
         };
 
-        const pluginsMap = (testCompiler as { plugins: Map<string, Plugin> }).plugins;
+        const pluginsMap = (testCompiler as unknown as { plugins: Map<string, Plugin> }).plugins;
         pluginsMap.set('test-validate', mockPlugin);
 
         // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -1620,14 +1620,14 @@ export default {
       });
 
       it('should throw when validation fails with throwOnError', async () => {
-        const strictCompiler = new Compiler({ root: TEST_DIR, throwOnError: true });
+        const strictCompiler = new Compiler({ projectRoot: TEST_DIR, throwOnError: true });
 
         const mockPlugin = {
           name: 'strict-validate',
           validate: () => ['Critical error'],
         };
 
-        const pluginsMap = (strictCompiler as { plugins: Map<string, Plugin> }).plugins;
+        const pluginsMap = (strictCompiler as unknown as { plugins: Map<string, Plugin> }).plugins;
         pluginsMap.set('strict-validate', mockPlugin);
 
         await expect(strictCompiler.compile({})).rejects.toThrow('Configuration validation failed');
@@ -1636,7 +1636,7 @@ export default {
 
     describe('Env value validation', () => {
       it('should reject nested objects in env values', async () => {
-        const strictCompiler = new Compiler({ root: TEST_DIR, throwOnError: true });
+        const strictCompiler = new Compiler({ projectRoot: TEST_DIR, throwOnError: true });
 
         const config = {
           env: {
@@ -1693,10 +1693,10 @@ export default {
 
         const result = await compiler.compile(config);
 
-        expect(result.permissions.allow).toContain('Read(**/*.ts)');
-        expect(result.permissions.allow).toContain('Write(src/**)');
-        expect(result.permissions.ask).toContain('Bash(*)');
-        expect(result.permissions.deny).toContain('Delete(*)');
+        expect(result.permissions?.allow).toContain('Read(**/*.ts)');
+        expect(result.permissions?.allow).toContain('Write(src/**)');
+        expect(result.permissions?.ask).toContain('Bash(*)');
+        expect(result.permissions?.deny).toContain('Delete(*)');
       });
 
       it('should handle mixed case fields correctly', async () => {
@@ -1710,8 +1710,8 @@ export default {
 
         const result = await compiler.compile(config);
 
-        expect(result.env.TEST1).toBe('value1');
-        expect(result.env.TEST2).toBe('value2');
+        expect(result.env?.TEST1).toBe('value1');
+        expect(result.env?.TEST2).toBe('value2');
         expect(result.includeCoAuthoredBy).toBe(false);
         expect(result.cleanupPeriodDays).toBe(10);
       });
@@ -1752,7 +1752,7 @@ export default {
             return [];
           },
         };
-        const pluginsMap = (compiler as { plugins: Map<string, Plugin> }).plugins;
+        const pluginsMap = (compiler as unknown as { plugins: Map<string, Plugin> }).plugins;
         pluginsMap.set('integration-plugin', mockPlugin);
 
         const config = {
@@ -1771,12 +1771,12 @@ export default {
 
         expect(result.includeCoAuthoredBy).toBe(true);
         expect(result.cleanupPeriodDays).toBe(7);
-        expect(result.permissions.allow).toContain('Read(**)');
-        expect(result.permissions.deny).toContain('Delete(*)');
-        expect(result.env.BASE_VAR).toBe('base_value');
-        expect(result.env.PLUGIN_VAR).toBe('plugin_value');
-        expect(result.env.REQUIRED_VAR).toBe('required_value');
-        expect(result.env.USER_VAR).toBe('user_value');
+        expect(result.permissions?.allow).toContain('Read(**)');
+        expect(result.permissions?.deny).toContain('Delete(*)');
+        expect(result.env?.BASE_VAR).toBe('base_value');
+        expect(result.env?.PLUGIN_VAR).toBe('plugin_value');
+        expect(result.env?.REQUIRED_VAR).toBe('required_value');
+        expect(result.env?.USER_VAR).toBe('user_value');
       });
     });
   });

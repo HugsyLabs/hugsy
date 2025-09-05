@@ -130,16 +130,17 @@ export function installCommand(): Command {
           options.force = true;
         }
 
-        // Install settings and commands
+        // Install settings, commands, and subagents
         const commands = compiler.getCompiledCommands();
+        const subagents = compiler.getCompiledSubagents();
         const installResult = options.force
           ? new InstallManager({
               projectRoot: process.cwd(),
               force: true,
               verbose: options.verbose ?? process.env.HUGSY_DEBUG === 'true',
               backup: options.backup !== false,
-            }).install(compiledSettings, commands)
-          : installer.install(compiledSettings, commands);
+            }).install(compiledSettings, commands, subagents)
+          : installer.install(compiledSettings, commands, subagents);
 
         if (!installResult.success) {
           logger.error(installResult.message);
@@ -158,6 +159,13 @@ export function installCommand(): Command {
         if (installResult.commandsCount && installResult.commandsCount > 0) {
           logger.success(
             `Generated ${installResult.commandsCount} slash command${installResult.commandsCount > 1 ? 's' : ''}`
+          );
+        }
+
+        // Report on subagents
+        if (installResult.agentsCount && installResult.agentsCount > 0) {
+          logger.success(
+            `Generated ${installResult.agentsCount} subagent${installResult.agentsCount > 1 ? 's' : ''}`
           );
         }
 

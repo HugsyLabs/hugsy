@@ -30,25 +30,29 @@ interface AppState {
   config: HugsyConfig;
   compiledSettings: Record<string, unknown> | null;
   compiledCommands: Record<string, { content: string; category?: string }> | null;
+  compiledSubagents: Record<
+    string,
+    { content: string; description: string; tools?: string[] }
+  > | null;
   existingSettings: Record<string, unknown> | null;
   hasExistingSettings: boolean;
   isCompiling: boolean;
   isInstalling: boolean;
   compilationError: string | null;
 
+  // History for undo/redo
+  configHistory: HugsyConfig[];
+  historyIndex: number;
+
   // Logs
   logs: LogEntry[];
   logFilter: 'all' | 'info' | 'warn' | 'error' | 'success';
 
   // UI State
-  activeTab: 'editor' | 'commands' | 'presets' | 'plugins' | 'logs';
+  activeTab: 'editor';
   theme: 'light' | 'dark';
   editorLayout: 'horizontal' | 'vertical';
   showForceInstallDialog: boolean;
-
-  // Presets & Plugins
-  availablePresets: { name: string; description: string }[];
-  availablePlugins: { name: string; description: string; installed: boolean }[];
 
   // Actions
   setConfig: (config: HugsyConfig) => void;
@@ -63,9 +67,10 @@ interface AppState {
   setTheme: (theme: AppState['theme']) => void;
   toggleEditorLayout: () => void;
   setShowForceInstallDialog: (show: boolean) => void;
-  loadPreset: (presetName: string) => void;
-  installPlugin: (pluginName: string) => void;
-  uninstallPlugin: (pluginName: string) => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
 }
 
 const useStore = create<AppState>()(
@@ -90,11 +95,16 @@ const useStore = create<AppState>()(
       },
       compiledSettings: null,
       compiledCommands: null,
+      compiledSubagents: null,
       existingSettings: null,
       hasExistingSettings: false,
       isCompiling: false,
       isInstalling: false,
       compilationError: null,
+
+      // History for undo/redo
+      configHistory: [],
+      historyIndex: -1,
 
       logs: [],
       logFilter: 'all',
@@ -104,31 +114,27 @@ const useStore = create<AppState>()(
       editorLayout: 'horizontal',
       showForceInstallDialog: false,
 
-      availablePresets: [
-        { name: '@hugsy/recommended', description: 'Recommended settings for most projects' },
-        { name: '@hugsy/strict', description: 'Strict security settings' },
-        { name: '@hugsy/development', description: 'Development-friendly settings' },
-        { name: '@hugsy/showcase', description: 'Showcase all features' },
-      ],
-
-      availablePlugins: [
-        { name: 'auto-format', description: 'Auto-format code on save', installed: false },
-        { name: '@hugsylabs/plugin-git', description: 'Git integration', installed: false },
-        { name: '@hugsylabs/plugin-node', description: 'Node.js tools', installed: false },
-        {
-          name: '@hugsylabs/plugin-typescript',
-          description: 'TypeScript support',
-          installed: false,
-        },
-      ],
-
       // Actions
-      setConfig: (config) => set({ config }),
+      setConfig: (config) => {
+        const { configHistory, historyIndex } = get();
+        const newHistory = [...configHistory.slice(0, historyIndex + 1), config];
+        set({
+          config,
+          configHistory: newHistory.slice(-50), // Keep last 50 history items
+          historyIndex: newHistory.length - 1,
+        });
+      },
 
-      updateConfig: (updates) =>
-        set((state) => ({
-          config: { ...state.config, ...updates },
-        })),
+      updateConfig: (updates) => {
+        const { config, configHistory, historyIndex } = get();
+        const newConfig = { ...config, ...updates };
+        const newHistory = [...configHistory.slice(0, historyIndex + 1), newConfig];
+        set({
+          config: newConfig,
+          configHistory: newHistory.slice(-50), // Keep last 50 history items
+          historyIndex: newHistory.length - 1,
+        });
+      },
 
       loadExistingSettings: async () => {
         try {
@@ -191,6 +197,7 @@ const useStore = create<AppState>()(
             set({
               compiledSettings: result.settings,
               compiledCommands: result.commands ?? {}, // Use commands from compilation result
+              compiledSubagents: result.subagents ?? {}, // Use subagents from compilation result
               isCompiling: false,
             });
             addLog({ level: 'success', message: 'Compilation completed successfully!' });
@@ -320,45 +327,36 @@ const useStore = create<AppState>()(
 
       setShowForceInstallDialog: (show) => set({ showForceInstallDialog: show }),
 
-      loadPreset: (presetName) => {
-        const { addLog } = get();
-        addLog({ level: 'info', message: `Loading preset: ${presetName}` });
-        set((state) => ({
-          config: {
-            ...state.config,
-            extends: presetName,
-          },
-        }));
+      undo: () => {
+        const { configHistory, historyIndex } = get();
+        if (historyIndex > 0) {
+          const newIndex = historyIndex - 1;
+          set({
+            config: configHistory[newIndex],
+            historyIndex: newIndex,
+          });
+        }
       },
 
-      installPlugin: (pluginName) => {
-        const { config, addLog } = get();
-        addLog({ level: 'info', message: `Installing plugin: ${pluginName}` });
-        set((state) => ({
-          config: {
-            ...state.config,
-            plugins: [...(config.plugins ?? []), pluginName],
-          },
-          availablePlugins: state.availablePlugins.map((p) =>
-            p.name === pluginName ? { ...p, installed: true } : p
-          ),
-        }));
-        addLog({ level: 'success', message: `Plugin installed: ${pluginName}` });
+      redo: () => {
+        const { configHistory, historyIndex } = get();
+        if (historyIndex < configHistory.length - 1) {
+          const newIndex = historyIndex + 1;
+          set({
+            config: configHistory[newIndex],
+            historyIndex: newIndex,
+          });
+        }
       },
 
-      uninstallPlugin: (pluginName) => {
-        const { config, addLog } = get();
-        addLog({ level: 'info', message: `Uninstalling plugin: ${pluginName}` });
-        set((state) => ({
-          config: {
-            ...state.config,
-            plugins: (config.plugins ?? []).filter((p) => p !== pluginName),
-          },
-          availablePlugins: state.availablePlugins.map((p) =>
-            p.name === pluginName ? { ...p, installed: false } : p
-          ),
-        }));
-        addLog({ level: 'success', message: `Plugin uninstalled: ${pluginName}` });
+      canUndo: () => {
+        const { historyIndex } = get();
+        return historyIndex > 0;
+      },
+
+      canRedo: () => {
+        const { configHistory, historyIndex } = get();
+        return historyIndex < configHistory.length - 1;
       },
     }),
     {

@@ -17,7 +17,7 @@ describe('validateSettings Method', () => {
   describe('Schema Validation', () => {
     it('should detect missing $schema field', () => {
       const settings: ClaudeSettings = {
-        permissions: { allow: ['Read(**)'] },
+        permissions: { allow: ['Read(**)'], ask: [], deny: [] },
       };
 
       const errors = compiler.validateSettings(settings);
@@ -28,7 +28,7 @@ describe('validateSettings Method', () => {
     it('should detect incorrect $schema value', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://wrong.schema.com',
-        permissions: { allow: ['Read(**)'] },
+        permissions: { allow: ['Read(**)'], ask: [], deny: [] },
       };
 
       const errors = compiler.validateSettings(settings);
@@ -41,7 +41,7 @@ describe('validateSettings Method', () => {
     it('should accept correct $schema value', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        permissions: { allow: ['Read(**)'] },
+        permissions: { allow: ['Read(**)'], ask: [], deny: [] },
       };
 
       const errors = compiler.validateSettings(settings);
@@ -57,6 +57,8 @@ describe('validateSettings Method', () => {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
         permissions: {
           allow: ['read(**)', 'Write(**)'],
+          ask: [],
+          deny: [],
         },
       };
 
@@ -74,6 +76,8 @@ describe('validateSettings Method', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
         permissions: {
+          allow: [],
+          ask: [],
           deny: ['123Delete', 'Delete(*)'],
         },
       };

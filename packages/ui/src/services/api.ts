@@ -62,6 +62,7 @@ export const api = {
   async compile(): Promise<{
     settings: Record<string, unknown> | null;
     commands?: Record<string, { content: string; category?: string }>;
+    subagents?: Record<string, { content: string; description: string; tools?: string[] }>;
     output: string;
     error?: string;
   }> {

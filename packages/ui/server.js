@@ -93,6 +93,13 @@ app.post('/api/compile', async (req, res) => {
         commands[name] = command;
       }
 
+      // Get compiled subagents
+      const compiledSubagents = compiler.getCompiledSubagents();
+      const subagents = {};
+      for (const [name, subagent] of compiledSubagents) {
+        subagents[name] = subagent;
+      }
+
       // Restore console
       console.log = originalLog;
       console.error = originalError;
@@ -102,6 +109,7 @@ app.post('/api/compile', async (req, res) => {
         success: true,
         settings: result,
         commands: commands,
+        subagents: subagents,
         output: logs.join('\n'),
         error: null,
       });
@@ -287,6 +295,7 @@ app.post('/api/install', async (req, res) => {
     const compiler = new Compiler({ projectRoot: PROJECT_ROOT });
     const compiledSettings = await compiler.compile(config);
     const commands = compiler.getCompiledCommands();
+    const subagents = compiler.getCompiledSubagents();
 
     // Use InstallManager to install
     const installer = new InstallManager({
@@ -294,7 +303,7 @@ app.post('/api/install', async (req, res) => {
       force: force || false,
     });
 
-    const result = installer.install(compiledSettings, commands);
+    const result = installer.install(compiledSettings, commands, subagents);
 
     if (result.success) {
       // Read the installed settings.json to confirm

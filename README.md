@@ -17,17 +17,27 @@ Hugsy is a configuration management system for Claude Code that enables teams to
 
 It ensures your AI coding agents follow your team's standards, workflows, and best practices.
 
+<p align="center">
+  <img src="docs/images/hugsy-ui-screenshot.png" alt="Hugsy Web UI" width="800">
+  <br>
+  <em>Hugsy's intuitive web interface for managing configurations</em>
+</p>
+
 ## Why Hugsy?
 
 ### The Problem
+
 Every developer configures Claude Code differently. This leads to:
+
 - Inconsistent AI behaviors across team members
 - Repeated setup for common workflows
 - Security risks from overly permissive settings
 - Lost productivity from manual configuration
 
 ### The Solution
+
 Hugsy provides a unified configuration system that:
+
 - Compiles human-readable configs into Claude-compatible settings
 - Enables configuration inheritance and composition
 - Validates settings before deployment
@@ -35,24 +45,25 @@ Hugsy provides a unified configuration system that:
 
 ### Without Hugsy vs With Hugsy
 
-|                    | Without Hugsy           | With Hugsy              |
-|--------------------|-------------------------|-------------------------|
-| Config size        | 200+ lines JSON         | 10 lines JSON           |
-| Team consistency   | ❌ Manual per developer | ✅ Presets + Plugins    |
-| Security           | ❌ Easy to miss         | ✅ Enforced rules       |
-| Slash Commands     | ❌ Scattered files      | ✅ Centralized          |
-| Maintenance        | ❌ Update everywhere    | ✅ Update once          |
+|                  | Without Hugsy           | With Hugsy           |
+| ---------------- | ----------------------- | -------------------- |
+| Config size      | 200+ lines JSON         | 10 lines JSON        |
+| Team consistency | ❌ Manual per developer | ✅ Presets + Plugins |
+| Security         | ❌ Easy to miss         | ✅ Enforced rules    |
+| Slash Commands   | ❌ Scattered files      | ✅ Centralized       |
+| Maintenance      | ❌ Update everywhere    | ✅ Update once       |
 
 ## Features
 
 ### 🎯 Configuration Compiler
+
 Transform simple `.hugsyrc.json` files into comprehensive Claude Code settings:
 
 ```json
 {
   "extends": "@hugsylabs/hugsy-compiler/presets/development",
   "slashCommands": {
-     "presets": ["slash-commands-common"]
+    "presets": ["slash-commands-common"]
   }
 }
 ```
@@ -60,6 +71,7 @@ Transform simple `.hugsyrc.json` files into comprehensive Claude Code settings:
 Compiles to a complete `.claude/settings.json` and `.claude/commands/` with all necessary configurations.
 
 ### 🔌 Plugin Architecture
+
 Extend and customize Hugsy's behavior:
 
 ```javascript
@@ -69,27 +81,28 @@ export default {
   transform(config) {
     // Add security restrictions to protect sensitive files
     const existingDeny = config.permissions?.deny || [];
-    
+
     return {
       env: config.env,
       permissions: {
         allow: config.permissions?.allow,
         ask: config.permissions?.ask,
         deny: [
-          ...existingDeny,           // Keep existing deny rules
-          'Read(**/.env)',          // Block all .env files
-          'Read(**/secrets/**)',    // Block all secrets directories
-          'Read(**/*key*)',         // Block files containing 'key'
-        ]
+          ...existingDeny, // Keep existing deny rules
+          'Read(**/.env)', // Block all .env files
+          'Read(**/secrets/**)', // Block all secrets directories
+          'Read(**/*key*)', // Block files containing 'key'
+        ],
       },
       hooks: config.hooks,
-      commands: config.commands
+      commands: config.commands,
     };
-  }
+  },
 };
 ```
 
 ### 📦 Preset Ecosystem
+
 Choose from built-in presets or create your own:
 
 - **development** - Full-featured development environment
@@ -109,7 +122,27 @@ npm install --save-dev @hugsylabs/hugsy
 
 ## Quick Start
 
-### 1. Initialize your project
+### 1. Use the Web UI (Recommended)
+
+The easiest way to manage your Hugsy configuration is through the web UI:
+
+```bash
+hugsy ui
+```
+
+This launches a web interface where you can:
+
+- Initialize your configuration with a visual interface
+- Edit your `.hugsyrc.json` file with syntax highlighting
+- Preview compiled settings before installing
+- Browse and manage slash commands
+- View compilation logs in real-time
+
+The UI will automatically open in your browser at `http://localhost:3456`.
+
+### 2. Initialize from CLI
+
+Alternatively, you can initialize directly from the command line:
 
 ```bash
 hugsy init
@@ -119,7 +152,7 @@ Choose a preset that matches your project type. The configuration will be automa
 
 > **Note:** Use `hugsy init --no-install` if you want to review the configuration before installing.
 
-### 2. Install packages (optional)
+### 3. Install packages (optional)
 
 Add plugins or presets to enhance your configuration:
 
@@ -134,7 +167,7 @@ hugsy install @hugsy/plugin-security
 hugsy install ./plugins/lint.js ./presets/team-config.json
 ```
 
-### 3. Manage your configuration
+### 4. Manage your configuration
 
 ```bash
 # Check current status
@@ -151,18 +184,43 @@ Your Claude Code configuration is now ready!
 
 ## CLI Reference
 
+### `hugsy ui`
+
+Launch the Hugsy web UI for visual configuration management.
+
+**Options:**
+
+- `-p, --port <port>` - Port to run the UI on (default: 3456)
+- `-n, --no-open` - Don't open browser automatically
+
+**Example:**
+
+```bash
+# Launch UI with auto-open browser
+hugsy ui
+
+# Launch on custom port
+hugsy ui --port 8080
+
+# Launch without opening browser
+hugsy ui --no-open
+```
+
 ### `hugsy init [preset]`
 
 Initialize Hugsy configuration in your project.
 
 **Arguments:**
+
 - `preset` - Optional preset to use (recommended, security, permissive, custom)
 
 **Options:**
+
 - `-f, --force` - Overwrite existing configuration
 - `--no-install` - Skip automatic installation after initialization
 
 **Example:**
+
 ```bash
 # Interactive initialization
 hugsy init
@@ -179,9 +237,11 @@ hugsy init --no-install
 Install Hugsy configuration or add packages to your configuration.
 
 **Arguments:**
+
 - `packages` - Optional packages to install (plugins or presets)
 
 **Options:**
+
 - `-f, --force` - Overwrite existing configuration
 - `-v, --verbose` - Show detailed compilation process
 - `--no-backup` - Skip backup of existing settings
@@ -189,6 +249,7 @@ Install Hugsy configuration or add packages to your configuration.
 - `--preset` - Treat packages as presets
 
 **Example:**
+
 ```bash
 # Install current configuration
 hugsy install
@@ -205,13 +266,16 @@ hugsy install ./presets/strict-config.json --preset
 Remove Hugsy or packages from your project.
 
 **Arguments:**
+
 - `packages` - Optional packages to uninstall (if not provided, uninstalls Hugsy entirely)
 
 **Options:**
+
 - `--keep-config` - Keep .hugsyrc.json file (for full uninstall)
 - `-y, --yes` - Skip confirmation
 
 **Example:**
+
 ```bash
 # Uninstall specific packages
 hugsy uninstall ./plugins/security.js
@@ -228,6 +292,7 @@ hugsy uninstall --yes
 Check the current Hugsy installation status.
 
 **Example:**
+
 ```bash
 hugsy status
 ```
@@ -237,9 +302,11 @@ hugsy status
 Display the current Hugsy configuration.
 
 **Options:**
+
 - `-r, --raw` - Show raw configuration before compilation
 
 **Example:**
+
 ```bash
 # Show compiled configuration
 hugsy config
@@ -250,25 +317,26 @@ hugsy config --raw
 
 ## Plugin Development
 
-Hugsy plugins are ESM-only modules that transform configurations. 
+Hugsy plugins are ESM-only modules that transform configurations.
 
 ### Basic Plugin Structure
 
 ```javascript
 // my-plugin.js
 export default {
-  name: 'my-plugin',    // Required: unique identifier
-  version: '1.0.0',     // Optional: plugin version
-  
-  transform(config) {   // Required: transform function
+  name: 'my-plugin', // Required: unique identifier
+  version: '1.0.0', // Optional: plugin version
+
+  transform(config) {
+    // Required: transform function
     return {
       ...config,
       env: {
         ...config.env,
-        MY_VAR: 'value'
-      }
+        MY_VAR: 'value',
+      },
     };
-  }
+  },
 };
 ```
 
@@ -276,12 +344,12 @@ export default {
 
 ### Plugin API
 
-| Property | Type | Required | Description |
-|----------|------|----------|-------------|
-| `name` | `string` | ✅ | Unique plugin identifier |
-| `transform` | `function` | ✅ | Config transformation function |
-| `version` | `string` | ❌ | Plugin version |
-| `author` | `string` | ❌ | Plugin author |
+| Property    | Type       | Required | Description                    |
+| ----------- | ---------- | -------- | ------------------------------ |
+| `name`      | `string`   | ✅       | Unique plugin identifier       |
+| `transform` | `function` | ✅       | Config transformation function |
+| `version`   | `string`   | ❌       | Plugin version                 |
+| `author`    | `string`   | ❌       | Plugin author                  |
 
 ### Best Practices
 
@@ -290,21 +358,22 @@ export default {
 3. **Handle missing fields defensively**
 
 Example:
+
 ```javascript
 export default {
   name: 'security-plugin',
   transform(config) {
     // Defensive: handle missing permissions
     const currentDeny = config.permissions?.deny || [];
-    
+
     return {
-      ...config,  // Preserve all config
+      ...config, // Preserve all config
       permissions: {
         ...config.permissions,
-        deny: [...currentDeny, 'Write(**/.env*)']
-      }
+        deny: [...currentDeny, 'Write(**/.env*)'],
+      },
     };
-  }
+  },
 };
 ```
 
@@ -318,4 +387,4 @@ MIT
 
 ---
 
-Made with ❤️ by the HugsyLabs🐧 Team 
+Made with ❤️ by the HugsyLabs🐧 Team
