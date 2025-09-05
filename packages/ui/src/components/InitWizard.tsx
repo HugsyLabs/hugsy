@@ -18,7 +18,7 @@ export function InitWizard() {
     try {
       addLog({ level: 'info', message: 'Initializing configuration...' });
 
-      const result = await api.initConfig('basic', false);
+      const result = await api.initConfig('recommended', false);
 
       if (result.success) {
         addLog({

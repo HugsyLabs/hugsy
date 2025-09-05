@@ -14,6 +14,8 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "pnpm build && vitest run tests/",
     "test:unit": "vitest run packages/",
+    "test:cli": "vitest run packages/cli packages/core tests/",
+    "test:ui": "vitest run packages/ui",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,json,yml,yaml}\"",
     "changeset": "changeset",
     "version": "changeset version && pnpm install --lockfile-only",
