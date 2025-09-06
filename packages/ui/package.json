@@ -1,6 +1,6 @@
 {
   "name": "@hugsylabs/hugsy-ui",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Modern UI for Hugsy configuration management",
   "type": "module",
   "scripts": {
@@ -22,7 +22,7 @@
   "license": "MIT",
   "dependencies": {
     "@headlessui/react": "^2.2.7",
-    "@hugsylabs/hugsy-core": "workspace:^0.2.0",
+    "@hugsylabs/hugsy-core": "workspace:^0.3.0",
     "@monaco-editor/react": "^4.7.0",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
