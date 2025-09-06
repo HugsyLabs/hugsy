@@ -1,6 +1,6 @@
 {
   "name": "@hugsylabs/hugsy-core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Core functionality for Hugsy - Configuration management for Claude Code",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -36,7 +36,7 @@
   },
   "homepage": "https://github.com/HugsyLab/hugsy#readme",
   "dependencies": {
-    "@hugsylabs/hugsy-types": "^0.0.7",
+    "@hugsylabs/hugsy-types": "^0.1.0",
     "glob": "^10.3.10",
     "gray-matter": "^4.0.3",
     "ora": "^8.0.1",
