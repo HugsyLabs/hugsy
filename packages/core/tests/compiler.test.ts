@@ -1661,9 +1661,9 @@ export default {
 
         const result = await compiler.compile(config);
 
-        expect(result.env.STRING1).toBe('value1');
-        expect(result.env.STRING2).toBe('value2');
-        expect(result.env.JSON_STRING).toBe('{"nested":"data"}');
+        expect(result.env?.STRING1).toBe('value1');
+        expect(result.env?.STRING2).toBe('value2');
+        expect(result.env?.JSON_STRING).toBe('{"nested":"data"}');
       });
     });
 
@@ -1678,8 +1678,8 @@ export default {
 
         const result = await compiler.compile(config);
 
-        expect(result.env.TEST).toBe('value');
-        expect(result.env.ANOTHER).toBe('test');
+        expect(result.env?.TEST).toBe('value');
+        expect(result.env?.ANOTHER).toBe('test');
       });
 
       it('should normalize Permissions and sub-fields', async () => {
@@ -1778,6 +1778,174 @@ export default {
         expect(result.env?.REQUIRED_VAR).toBe('required_value');
         expect(result.env?.USER_VAR).toBe('user_value');
       });
+    });
+  });
+
+  describe('Static loadConfig method', () => {
+    it('should load JSON config file', async () => {
+      const configPath = join(TEST_DIR, '.hugsyrc.json');
+      const config = {
+        permissions: {
+          allow: ['Read(**)'],
+        },
+      };
+      writeFileSync(configPath, JSON.stringify(config, null, 2));
+
+      // Change working directory to test directory
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
+
+      const loaded = await Compiler.loadConfig();
+
+      process.chdir(originalCwd);
+
+      expect(loaded).toEqual(config);
+    });
+
+    it('should load YAML config file', async () => {
+      const configPath = join(TEST_DIR, '.hugsyrc.yml');
+      const config = {
+        permissions: {
+          allow: ['Read(**)'],
+        },
+      };
+      writeFileSync(configPath, yaml.stringify(config));
+
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
+
+      const loaded = await Compiler.loadConfig();
+
+      process.chdir(originalCwd);
+
+      expect(loaded).toEqual(config);
+    });
+
+    it('should load JS config file', async () => {
+      const configPath = join(TEST_DIR, 'hugsy.config.js');
+      const configContent = `
+        export default {
+          permissions: {
+            allow: ['Read(**)', 'Write(**/test/**)'],
+          },
+        };
+      `;
+      writeFileSync(configPath, configContent);
+
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
+
+      const loaded = await Compiler.loadConfig();
+
+      process.chdir(originalCwd);
+
+      expect(loaded?.permissions?.allow).toContain('Read(**)');
+    });
+
+    it('should load specific config file path', async () => {
+      const configPath = join(TEST_DIR, 'custom-config.json');
+      const config = {
+        permissions: {
+          deny: ['Delete(**)'],
+        },
+      };
+      writeFileSync(configPath, JSON.stringify(config, null, 2));
+
+      const loaded = await Compiler.loadConfig(configPath);
+
+      expect(loaded).toEqual(config);
+    });
+
+    it('should return null when no config file exists', async () => {
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
+
+      const loaded = await Compiler.loadConfig();
+
+      process.chdir(originalCwd);
+
+      expect(loaded).toBeNull();
+    });
+
+    it('should handle invalid JSON gracefully', async () => {
+      const configPath = join(TEST_DIR, '.hugsyrc.json');
+      writeFileSync(configPath, 'invalid json content');
+
+      const originalCwd = process.cwd();
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      process.chdir(TEST_DIR);
+
+      const loaded = await Compiler.loadConfig();
+
+      process.chdir(originalCwd);
+      consoleErrorSpy.mockRestore();
+
+      expect(loaded).toBeNull();
+    });
+
+    it('should handle YAML parsing errors gracefully', async () => {
+      const configPath = join(TEST_DIR, '.hugsyrc.yaml');
+      writeFileSync(configPath, '{{invalid yaml content');
+
+      const originalCwd = process.cwd();
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      process.chdir(TEST_DIR);
+
+      const loaded = await Compiler.loadConfig();
+
+      process.chdir(originalCwd);
+      consoleErrorSpy.mockRestore();
+
+      expect(loaded).toBeNull();
+    });
+  });
+
+  describe('normalizeConfig edge cases', () => {
+    it('should handle permissions with non-standard keys', async () => {
+      const config = {
+        permissions: {
+          allow: ['Read(**)'],
+          customKey: ['Custom(*)'],
+        },
+      } as HugsyConfig;
+
+      const result = await compiler.compile(config);
+
+      expect(result.permissions?.allow).toContain('Read(**)');
+      // Non-standard keys might be filtered out during normalization
+      // This is actually correct behavior - only allow/ask/deny are valid
+    });
+
+    it('should merge env variables from uppercase Env field', async () => {
+      const config = {
+        Env: {
+          VAR1: 'value1',
+        },
+        env: {
+          VAR2: 'value2',
+        },
+      } as unknown as HugsyConfig;
+
+      const result = await compiler.compile(config);
+
+      expect(result.env?.VAR1).toBe('value1');
+      expect(result.env?.VAR2).toBe('value2');
+    });
+
+    it('should handle permissions with mixed case keys', async () => {
+      const config = {
+        Permissions: {
+          Allow: ['Read(**)'],
+          DENY: ['Delete(**)'],
+          ask: ['Write(**)'],
+        },
+      } as unknown as HugsyConfig;
+
+      const result = await compiler.compile(config);
+
+      expect(result.permissions?.allow).toContain('Read(**)');
+      expect(result.permissions?.deny).toContain('Delete(**)');
+      expect(result.permissions?.ask).toContain('Write(**)');
     });
   });
 });

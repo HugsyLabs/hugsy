@@ -15,7 +15,12 @@ export { Compiler, CompilerError, CompilerOptions } from './compiler/index.js';
 export { InstallManager, InstallOptions, InstallResult } from './installer/index.js';
 
 // Export PackageManager and related types
-export { PackageManager, PackageInfo } from './packages/index.js';
+export {
+  PackageManager,
+  PackageInfo,
+  PackageManagerType,
+  InstallResult as PackageInstallResult,
+} from './packages/index.js';
 
 // Export ConfigManager and related types
 export { ConfigManager, ConfigOptions, ValidationResult } from './config/index.js';

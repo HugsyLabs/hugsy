@@ -100,8 +100,8 @@ export const useKeyboardShortcuts = (onShowHelp?: () => void) => {
       key: '1',
       ctrl: true,
       cmd: true,
-      handler: () => setActiveTab('editor'),
-      description: 'Switch to Editor',
+      handler: () => setActiveTab('config'),
+      description: 'Switch to Config',
     },
     // Toggle layout (Cmd/Ctrl + L)
     {

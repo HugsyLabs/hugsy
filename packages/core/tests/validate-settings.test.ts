@@ -246,19 +246,18 @@ describe('validateSettings Method', () => {
     });
 
     it('should detect non-numeric timeout value', () => {
-      const settings: ClaudeSettings = {
-        $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        hooks: {
-          PreToolUse: [
-            {
-              matcher: 'Bash',
-              hooks: [{ type: 'command', command: 'echo "test"', timeout: '1000' as number }],
-            },
-          ],
-        },
-      };
+      // Simulate data from JSON file (not type-checked)
+      const settingsFromFile = JSON.parse(`{
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "hooks": {
+          "PreToolUse": [{
+            "matcher": "Bash",
+            "hooks": [{ "type": "command", "command": "echo \\"test\\"", "timeout": "1000" }]
+          }]
+        }
+      }`);
 
-      const errors = compiler.validateSettings(settings);
+      const errors = compiler.validateSettings(settingsFromFile);
 
       expect(errors).toContain('Hooks.PreToolUse[0].hooks[0].timeout must be a number');
     });
@@ -297,17 +296,18 @@ describe('validateSettings Method', () => {
 
   describe('Environment Variables Validation', () => {
     it('should detect non-string environment variable values', () => {
-      const settings: ClaudeSettings = {
-        $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        env: {
-          NODE_ENV: 'development',
-          PORT: 3000 as string,
-          DEBUG: true as string,
-          CONFIG: { nested: 'value' } as string,
-        },
-      };
+      // Simulate data from JSON file (not type-checked)
+      const settingsFromFile = JSON.parse(`{
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "env": {
+          "NODE_ENV": "development",
+          "PORT": 3000,
+          "DEBUG": true,
+          "CONFIG": { "nested": "value" }
+        }
+      }`);
 
-      const errors = compiler.validateSettings(settings);
+      const errors = compiler.validateSettings(settingsFromFile);
 
       expect(errors).toContain("Environment variable 'PORT' must be a string, got number");
       expect(errors).toContain("Environment variable 'DEBUG' must be a string, got boolean");
@@ -404,10 +404,11 @@ describe('validateSettings Method', () => {
 
   describe('Optional Fields Validation', () => {
     it('should detect non-numeric cleanupPeriodDays', () => {
-      const settings: ClaudeSettings = {
-        $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        cleanupPeriodDays: '7' as number,
-      };
+      // Simulate data from JSON file (not type-checked)
+      const settings = JSON.parse(`{
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "cleanupPeriodDays": "7"
+      }`);
 
       const errors = compiler.validateSettings(settings);
 
@@ -415,10 +416,11 @@ describe('validateSettings Method', () => {
     });
 
     it('should detect non-boolean includeCoAuthoredBy', () => {
-      const settings: ClaudeSettings = {
-        $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        includeCoAuthoredBy: 'true' as boolean,
-      };
+      // Simulate data from JSON file (not type-checked)
+      const settings = JSON.parse(`{
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "includeCoAuthoredBy": "true"
+      }`);
 
       const errors = compiler.validateSettings(settings);
 
@@ -426,10 +428,11 @@ describe('validateSettings Method', () => {
     });
 
     it('should detect non-boolean enableAllProjectMcpServers', () => {
-      const settings: ClaudeSettings = {
-        $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        enableAllProjectMcpServers: 1 as boolean,
-      };
+      // Simulate data from JSON file (not type-checked)
+      const settings = JSON.parse(`{
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "enableAllProjectMcpServers": 1
+      }`);
 
       const errors = compiler.validateSettings(settings);
 
@@ -437,10 +440,11 @@ describe('validateSettings Method', () => {
     });
 
     it('should detect non-array enabledMcpjsonServers', () => {
-      const settings: ClaudeSettings = {
-        $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        enabledMcpjsonServers: 'server1' as string[],
-      };
+      // Simulate data from JSON file (not type-checked)
+      const settings = JSON.parse(`{
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "enabledMcpjsonServers": "server1"
+      }`);
 
       const errors = compiler.validateSettings(settings);
 
@@ -448,10 +452,11 @@ describe('validateSettings Method', () => {
     });
 
     it('should detect non-array disabledMcpjsonServers', () => {
-      const settings: ClaudeSettings = {
-        $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        disabledMcpjsonServers: { server: 'disabled' } as string[],
-      };
+      // Simulate data from JSON file (not type-checked)
+      const settings = JSON.parse(`{
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "disabledMcpjsonServers": { "server": "disabled" }
+      }`);
 
       const errors = compiler.validateSettings(settings);
 
@@ -538,31 +543,32 @@ describe('validateSettings Method', () => {
 
   describe('Multiple Errors Detection', () => {
     it('should detect multiple errors simultaneously', () => {
-      const settings: ClaudeSettings = {
-        // Missing $schema
-        permissions: {
-          allow: ['invalid-format', 'Read(**)'],
-          deny: ['123Invalid'],
+      // Simulate data from JSON file with multiple errors
+      const settings = JSON.parse(`{
+        "permissions": {
+          "allow": ["invalid-format", "Read(**)"],
+          "deny": ["123Invalid"],
+          "ask": []
         },
-        hooks: {
-          PreToolUse: [
+        "hooks": {
+          "PreToolUse": [
             {
-              matcher: 'Bash(git *)', // Wrong format
-              hooks: [
-                { type: 'script' as 'command', command: 'test' }, // Wrong type
-              ],
-            },
-          ],
+              "matcher": "Bash(git *)",
+              "hooks": [
+                { "type": "script", "command": "test" }
+              ]
+            }
+          ]
         },
-        env: {
-          PORT: 3000 as string, // Wrong type
+        "env": {
+          "PORT": 3000
         },
-        statusLine: {
-          type: 'command', // Missing command field
+        "statusLine": {
+          "type": "command"
         },
-        cleanupPeriodDays: '7' as number, // Wrong type
-        includeCoAuthoredBy: 'yes' as boolean, // Wrong type
-      };
+        "cleanupPeriodDays": "7",
+        "includeCoAuthoredBy": "yes"
+      }`);
 
       const errors = compiler.validateSettings(settings);
 

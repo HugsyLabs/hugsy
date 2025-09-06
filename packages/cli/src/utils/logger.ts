@@ -14,7 +14,7 @@ export const logger = {
     console.error(chalk.red('❌'), message);
   },
 
-  warning(message: string) {
+  warn(message: string) {
     console.log(chalk.yellow('⚠️'), message);
   },
 

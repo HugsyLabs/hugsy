@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileCode, Settings, BookOpen, ExternalLink } from 'lucide-react';
+import { FileCode, Settings, BookOpen, ExternalLink, Package } from 'lucide-react';
 import useStore from '../store';
 import { cn } from '../utils/cn';
 import { SettingsModal } from './SettingsModal';
 
-const menuItems = [{ id: 'editor' as const, label: 'Configuration', icon: FileCode }];
+const menuItems = [
+  { id: 'config' as const, label: 'Configuration', icon: FileCode },
+  { id: 'packages' as const, label: 'Installed Packages', icon: Package },
+];
 
 export function Sidebar() {
   const { activeTab, setActiveTab } = useStore();

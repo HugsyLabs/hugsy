@@ -2,6 +2,10 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { api } from '../services/api';
 
+// Global flag to prevent duplicate loading in StrictMode
+let isLoadingSettings = false;
+let hasLoadedSettings = false;
+
 export interface LogEntry {
   id: string;
   timestamp: Date;
@@ -49,10 +53,12 @@ interface AppState {
   logFilter: 'all' | 'info' | 'warn' | 'error' | 'success';
 
   // UI State
-  activeTab: 'editor';
+  activeTab: 'config' | 'packages';
   theme: 'light' | 'dark';
   editorLayout: 'horizontal' | 'vertical';
   showForceInstallDialog: boolean;
+  showMissingPackagesDialog: boolean;
+  missingPackages: string[];
 
   // Actions
   setConfig: (config: HugsyConfig) => void;
@@ -67,6 +73,8 @@ interface AppState {
   setTheme: (theme: AppState['theme']) => void;
   toggleEditorLayout: () => void;
   setShowForceInstallDialog: (show: boolean) => void;
+  setShowMissingPackagesDialog: (show: boolean) => void;
+  installMissingPackages: () => Promise<void>;
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
@@ -109,10 +117,12 @@ const useStore = create<AppState>()(
       logs: [],
       logFilter: 'all',
 
-      activeTab: 'editor',
+      activeTab: 'config',
       theme: 'light',
-      editorLayout: 'horizontal',
+      editorLayout: 'vertical',
       showForceInstallDialog: false,
+      showMissingPackagesDialog: false,
+      missingPackages: [],
 
       // Actions
       setConfig: (config) => {
@@ -137,21 +147,29 @@ const useStore = create<AppState>()(
       },
 
       loadExistingSettings: async () => {
+        // Skip if already loaded or loading to prevent duplicate logging in StrictMode
+        if (hasLoadedSettings || isLoadingSettings) {
+          return;
+        }
+
+        isLoadingSettings = true;
+
         try {
           const result = await api.getSettings();
           set({
             existingSettings: result.settings,
             hasExistingSettings: result.exists,
-            // If settings exist, also set them as compiledSettings for display
+            // Set compiledSettings to show in output editor, but not trigger success message
             compiledSettings: result.settings,
           });
 
-          if (result.exists) {
+          if (result.exists && !hasLoadedSettings) {
             const { addLog } = get();
             addLog({
               level: 'info',
-              message: 'Loaded existing .claude/settings.json',
+              message: 'Loaded .claude/settings.json',
             });
+            hasLoadedSettings = true;
           }
         } catch (error) {
           const { addLog } = get();
@@ -159,6 +177,8 @@ const useStore = create<AppState>()(
             level: 'error',
             message: `Failed to load existing settings: ${error instanceof Error ? error.message : 'Unknown error'}`,
           });
+        } finally {
+          isLoadingSettings = false;
         }
       },
 
@@ -184,6 +204,20 @@ const useStore = create<AppState>()(
                 }
               }
             });
+          }
+
+          // Check for missing packages
+          if (result.missingPackages && result.missingPackages.length > 0) {
+            set({
+              missingPackages: result.missingPackages,
+              showMissingPackagesDialog: true,
+              isCompiling: false,
+            });
+            addLog({
+              level: 'warn',
+              message: `${result.missingPackages.length} missing package(s) detected`,
+            });
+            return;
           }
 
           // Check if compilation actually succeeded
@@ -221,6 +255,26 @@ const useStore = create<AppState>()(
         set({ isInstalling: true });
 
         try {
+          // First compile to check for missing packages
+          const { addLog: logMsg } = get();
+          logMsg({ level: 'info', message: 'Checking configuration...' });
+
+          const compileResult = await api.compile();
+
+          // Check for missing packages before installing
+          if (compileResult.missingPackages && compileResult.missingPackages.length > 0) {
+            set({
+              missingPackages: compileResult.missingPackages,
+              showMissingPackagesDialog: true,
+              isInstalling: false,
+            });
+            logMsg({
+              level: 'warn',
+              message: `${compileResult.missingPackages.length} missing package(s) must be installed first`,
+            });
+            return;
+          }
+
           addLog({ level: 'info', message: `Running hugsy install${force ? ' --force' : ''}...` });
 
           const result = await api.installSettings(force);
@@ -285,13 +339,6 @@ const useStore = create<AppState>()(
             // Ignore error, commands refresh is optional
           }
 
-          if (!result.output?.includes('❌')) {
-            addLog({
-              level: 'success',
-              message: 'Installation completed!',
-              details: '.claude/settings.json has been updated',
-            });
-          }
           set({ isInstalling: false });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -326,6 +373,50 @@ const useStore = create<AppState>()(
         })),
 
       setShowForceInstallDialog: (show) => set({ showForceInstallDialog: show }),
+
+      setShowMissingPackagesDialog: (show) => set({ showMissingPackagesDialog: show }),
+
+      installMissingPackages: async () => {
+        const { missingPackages, addLog } = get();
+
+        try {
+          addLog({ level: 'info', message: `Installing ${missingPackages.length} package(s)...` });
+
+          const result = await api.installPackages(missingPackages);
+
+          if (result.success) {
+            addLog({
+              level: 'success',
+              message: result.message ?? 'Packages installed successfully',
+            });
+
+            // Hide dialog and re-run compile
+            set({ showMissingPackagesDialog: false, missingPackages: [] });
+
+            // Re-run compile after packages are installed
+            const { compile } = get();
+            await compile();
+          } else {
+            // Show user-friendly error message
+            const errorMsg = result.error ?? 'Failed to install packages';
+            addLog({ level: 'error', message: errorMsg });
+
+            // If package not found, provide helpful suggestion
+            if (errorMsg.includes('not found in registry')) {
+              addLog({
+                level: 'info',
+                message:
+                  'Tip: Check if the package name is correct or if it has been published to npm',
+              });
+            }
+          }
+        } catch (error) {
+          addLog({
+            level: 'error',
+            message: `Failed to install packages: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          });
+        }
+      },
 
       undo: () => {
         const { configHistory, historyIndex } = get();

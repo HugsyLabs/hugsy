@@ -4,19 +4,34 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { ConfigEditor } from './components/ConfigEditor';
 import { Sidebar } from './components/Sidebar';
 import { InitWizard } from './components/InitWizard';
+import { Packages } from './components/Packages';
 import { api } from './services/api';
 import useStore from './store';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 
 function App() {
-  const { activeTab, theme, loadExistingSettings } = useStore();
+  const { activeTab, setActiveTab, theme, loadExistingSettings } = useStore();
   const [configExists, setConfigExists] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(true);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts(() => setShowShortcutsHelp(true));
+
+  // Handle URL routing
+  useEffect(() => {
+    // Get initial tab from URL hash
+    const hash = window.location.hash.slice(1);
+    if (hash === 'packages' || hash === 'config') {
+      setActiveTab(hash);
+    }
+  }, [setActiveTab]);
+
+  // Update URL when tab changes
+  useEffect(() => {
+    window.location.hash = activeTab;
+  }, [activeTab]);
 
   useEffect(() => {
     // Check if configuration exists
@@ -51,8 +66,13 @@ function App() {
   }, [theme]);
 
   const renderContent = () => {
-    // Since we only have editor now, always return ConfigEditor
-    return <ConfigEditor />;
+    switch (activeTab) {
+      case 'packages':
+        return <Packages />;
+      case 'config':
+      default:
+        return <ConfigEditor />;
+    }
   };
 
   // Show loading state while checking
@@ -87,7 +107,7 @@ function App() {
       <div className="relative h-screen">
         <PanelGroup direction="horizontal" className="h-full">
           {/* Sidebar Panel */}
-          <Panel defaultSize={12} minSize={10} maxSize={18}>
+          <Panel defaultSize={14} minSize={12} maxSize={20}>
             <Sidebar />
           </Panel>
 
@@ -95,7 +115,7 @@ function App() {
           <PanelResizeHandle className="w-1 bg-gray-200 dark:bg-gray-800 hover:bg-blue-500 dark:hover:bg-blue-400 transition-colors" />
 
           {/* Main Content Panel */}
-          <Panel defaultSize={85} minSize={40}>
+          <Panel defaultSize={86} minSize={40}>
             <div className="h-full flex flex-col overflow-hidden">
               {/* Content Area with Animation */}
               <main className="flex-1 overflow-hidden">

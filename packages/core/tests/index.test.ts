@@ -492,23 +492,23 @@ describe('Hugsy Compiler', () => {
     });
 
     it('should validate hook command structure', () => {
-      const settings: ClaudeSettings = {
-        $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        hooks: {
-          PostToolUse: [
+      // Simulate data from JSON file with missing type field
+      const settings = JSON.parse(`{
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "hooks": {
+          "PostToolUse": [
             {
-              matcher: 'Write',
-              hooks: [
+              "matcher": "Write",
+              "hooks": [
                 {
-                  // Missing type
-                  command: 'echo "test"',
-                  timeout: 1000,
-                },
-              ],
-            },
-          ],
-        },
-      };
+                  "command": "echo \\"test\\"",
+                  "timeout": 1000
+                }
+              ]
+            }
+          ]
+        }
+      }`);
 
       const errors = compiler.validateSettings(settings);
 
@@ -547,7 +547,7 @@ describe('Hugsy Compiler', () => {
           PORT: 3000,
           DEBUG: true,
         },
-      } as ClaudeSettings;
+      } as unknown as ClaudeSettings;
 
       const errors = compiler.validateSettings(settings);
 
@@ -600,7 +600,7 @@ describe('Hugsy Compiler', () => {
     it('should validate numeric fields', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        cleanupPeriodDays: '7' as number,
+        cleanupPeriodDays: '7' as unknown as number,
       };
 
       const errors = compiler.validateSettings(settings);
@@ -611,8 +611,8 @@ describe('Hugsy Compiler', () => {
     it('should validate boolean fields', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        includeCoAuthoredBy: 'true' as boolean,
-        enableAllProjectMcpServers: 1 as boolean,
+        includeCoAuthoredBy: 'true' as unknown as boolean,
+        enableAllProjectMcpServers: 1 as unknown as boolean,
       };
 
       const errors = compiler.validateSettings(settings);
@@ -763,7 +763,7 @@ describe('Hugsy Compiler', () => {
     });
 
     it('should reject null configuration', async () => {
-      const config = null as HugsyConfig;
+      const config = null as unknown as HugsyConfig;
 
       await expect(compiler.compile(config)).rejects.toThrow('Configuration must be an object');
     });

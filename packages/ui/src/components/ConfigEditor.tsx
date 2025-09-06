@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { LazyEditor } from './LazyEditor';
 import { motion } from 'framer-motion';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
@@ -25,6 +25,7 @@ import { cn } from '../utils/cn';
 import { api } from '../services/api';
 import { LogViewer } from './LogViewer';
 import { ConfirmDialog } from './ConfirmDialog';
+import { MissingPackagesDialog } from './MissingPackagesDialog';
 
 interface CommandFile {
   name: string;
@@ -57,6 +58,10 @@ export function ConfigEditor() {
     addLog,
     showForceInstallDialog,
     setShowForceInstallDialog,
+    showMissingPackagesDialog,
+    setShowMissingPackagesDialog,
+    missingPackages,
+    installMissingPackages,
   } = useStore();
   const [editorError, setEditorError] = useState<string | null>(null);
   const [outputTab, setOutputTab] = useState<'settings' | 'commands' | 'subagents'>('settings');
@@ -66,26 +71,43 @@ export function ConfigEditor() {
   );
   const [commandFolders, setCommandFolders] = useState<CommandFolder[]>([]);
   const [selectedSubagent, setSelectedSubagent] = useState<string | null>(null);
+  const [hugsyrcContent, setHugsyrcContent] = useState<string>('');
+  const [loadedAgents, setLoadedAgents] = useState<
+    Record<
+      string,
+      {
+        name: string;
+        description: string;
+        tools?: string[];
+        content: string;
+      }
+    >
+  >({});
+  const hasLoggedRef = useRef(false);
+  const [justCompiled, setJustCompiled] = useState(false);
 
   // Auto-select first subagent when tab changes or subagents load
   useEffect(() => {
-    if (outputTab === 'subagents' && compiledSubagents && !selectedSubagent) {
-      const firstAgent = Object.keys(compiledSubagents)[0];
-      if (firstAgent) {
-        setSelectedSubagent(firstAgent);
+    if (outputTab === 'subagents' && !selectedSubagent) {
+      const agents = loadedAgents || compiledSubagents;
+      if (agents) {
+        const firstAgent = Object.keys(agents)[0];
+        if (firstAgent) {
+          setSelectedSubagent(firstAgent);
+        }
       }
     }
-  }, [outputTab, compiledSubagents, selectedSubagent]);
-  const [hugsyrcContent, setHugsyrcContent] = useState<string>('');
+  }, [outputTab, compiledSubagents, loadedAgents, selectedSubagent]);
 
   // Fetch real data on mount (load both in parallel for better performance)
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load both in parallel
-        const [hugsyrcContent, commandsData] = await Promise.all([
+        // Load all data in parallel
+        const [hugsyrcContent, commandsData, agentsData] = await Promise.all([
           api.getHugsyrc(),
           api.getCommands(),
+          api.getAgents(),
         ]);
 
         // Set hugsyrc content
@@ -97,15 +119,46 @@ export function ConfigEditor() {
           console.error('Error parsing .hugsyrc:', e);
         }
 
-        // Set command folders
+        // Set command folders and log only if not already logged
         setCommandFolders(commandsData.commands);
+
+        // Set loaded agents
+        if (agentsData.agents && Object.keys(agentsData.agents).length > 0) {
+          setLoadedAgents(agentsData.agents);
+        }
+
+        // Only log once by checking hasLoggedRef
+        if (!hasLoggedRef.current) {
+          const totalCommands = commandsData.commands.reduce(
+            (
+              acc: number,
+              folder: { name: string; files: { name: string; path: string; content: string }[] }
+            ) => acc + folder.files.length,
+            0
+          );
+          if (totalCommands > 0) {
+            addLog({
+              level: 'info',
+              message: `Loaded ${totalCommands} commands from .claude/commands`,
+            });
+          }
+
+          if (agentsData.agents && Object.keys(agentsData.agents).length > 0) {
+            addLog({
+              level: 'info',
+              message: `Loaded ${Object.keys(agentsData.agents).length} agents from .claude/agents`,
+            });
+          }
+
+          hasLoggedRef.current = true;
+        }
       } catch (error) {
         console.error('Failed to load initial data:', error);
       }
     };
 
     void loadData();
-  }, [setConfig]);
+  }, [setConfig, addLog]);
 
   // Update command folders when compiledCommands changes (after Preview)
   useEffect(() => {
@@ -356,7 +409,7 @@ export function ConfigEditor() {
                 <span className="text-sm">{compilationError}</span>
               </motion.div>
             )}
-            {compiledSettings && !compilationError && !editorError && (
+            {compiledSettings && !compilationError && !editorError && justCompiled && (
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -430,7 +483,13 @@ export function ConfigEditor() {
 
             {/* Preview Button */}
             <button
-              onClick={() => void compile()}
+              onClick={() => {
+                setJustCompiled(true);
+                void compile().then(() => {
+                  // Hide success message after 3 seconds
+                  setTimeout(() => setJustCompiled(false), 3000);
+                });
+              }}
               disabled={isCompiling}
               title="Preview the compiled settings"
               className={cn(
@@ -481,7 +540,7 @@ export function ConfigEditor() {
         <Panel defaultSize={isHorizontal ? 66 : 75} minSize={40}>
           <PanelGroup direction={isHorizontal ? 'horizontal' : 'vertical'} className="h-full">
             {/* Source Editor Panel */}
-            <Panel defaultSize={50} minSize={30}>
+            <Panel defaultSize={isHorizontal ? 50 : 40} minSize={30}>
               <motion.div
                 className="h-full flex flex-col"
                 initial={{ opacity: 0 }}
@@ -518,7 +577,7 @@ export function ConfigEditor() {
             />
 
             {/* Output Editor Panel */}
-            <Panel defaultSize={50} minSize={30}>
+            <Panel defaultSize={isHorizontal ? 50 : 60} minSize={30}>
               <motion.div
                 className="h-full flex flex-col"
                 initial={{ opacity: 0 }}
@@ -777,35 +836,43 @@ export function ConfigEditor() {
                               </span>
                             </div>
                             <span className="text-xs text-gray-500 dark:text-gray-400">
-                              {compiledSubagents ? Object.keys(compiledSubagents).length : 0}
+                              {loadedAgents
+                                ? Object.keys(loadedAgents).length
+                                : compiledSubagents
+                                  ? Object.keys(compiledSubagents).length
+                                  : 0}
                             </span>
                           </div>
                         </div>
 
                         {/* Agent List */}
                         <div className="flex-1 overflow-y-auto">
-                          {compiledSubagents &&
-                            Object.entries(compiledSubagents).map(([name]) => (
-                              <button
-                                key={name}
-                                onClick={() => setSelectedSubagent(name)}
-                                className={cn(
-                                  'w-full flex items-center px-3 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-800 text-sm',
-                                  selectedSubagent === name
-                                    ? 'bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
-                                    : 'text-gray-700 dark:text-gray-300'
-                                )}
-                              >
-                                <FileText className="w-3.5 h-3.5 mr-2 flex-shrink-0" />
-                                <span className="truncate">{name}.md</span>
-                              </button>
-                            ))}
+                          {(loadedAgents || compiledSubagents) &&
+                            Object.entries(loadedAgents || compiledSubagents || {}).map(
+                              ([name]) => (
+                                <button
+                                  key={name}
+                                  onClick={() => setSelectedSubagent(name)}
+                                  className={cn(
+                                    'w-full flex items-center px-3 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-800 text-sm',
+                                    selectedSubagent === name
+                                      ? 'bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
+                                      : 'text-gray-700 dark:text-gray-300'
+                                  )}
+                                >
+                                  <FileText className="w-3.5 h-3.5 mr-2 flex-shrink-0" />
+                                  <span className="truncate">{name}.md</span>
+                                </button>
+                              )
+                            )}
                         </div>
                       </div>
 
                       {/* Agent Content */}
                       <div className="flex-1 flex flex-col">
-                        {selectedSubagent && compiledSubagents?.[selectedSubagent] ? (
+                        {selectedSubagent &&
+                        (loadedAgents?.[selectedSubagent] ||
+                          compiledSubagents?.[selectedSubagent]) ? (
                           <>
                             {/* File Header */}
                             <div className="h-[42px] bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 flex items-center justify-between">
@@ -815,13 +882,27 @@ export function ConfigEditor() {
                                   {selectedSubagent}.md
                                 </h3>
                                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {compiledSubagents[selectedSubagent].description}
+                                  {
+                                    (
+                                      loadedAgents?.[selectedSubagent] ??
+                                      compiledSubagents?.[selectedSubagent]
+                                    )?.description
+                                  }
                                 </span>
                               </div>
                               <div className="flex items-center space-x-2">
-                                {compiledSubagents[selectedSubagent].tools && (
+                                {(
+                                  loadedAgents?.[selectedSubagent] ??
+                                  compiledSubagents?.[selectedSubagent]
+                                )?.tools && (
                                   <span className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded">
-                                    {compiledSubagents[selectedSubagent].tools?.length} tools
+                                    {
+                                      (
+                                        loadedAgents?.[selectedSubagent] ??
+                                        compiledSubagents?.[selectedSubagent]
+                                      )?.tools?.length
+                                    }{' '}
+                                    tools
                                   </span>
                                 )}
                                 <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">
@@ -834,7 +915,12 @@ export function ConfigEditor() {
                                 key={selectedSubagent}
                                 height="100%"
                                 defaultLanguage="markdown"
-                                value={compiledSubagents[selectedSubagent].content}
+                                value={
+                                  (
+                                    loadedAgents?.[selectedSubagent] ??
+                                    compiledSubagents?.[selectedSubagent]
+                                  )?.content
+                                }
                                 theme={editorTheme}
                                 options={readOnlyEditorOptions}
                               />
@@ -849,14 +935,16 @@ export function ConfigEditor() {
                                   <Bot className="w-8 h-8 text-gray-400 dark:text-gray-600" />
                                 </div>
                                 <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                                  {compiledSubagents && Object.keys(compiledSubagents).length > 0
+                                  {(loadedAgents && Object.keys(loadedAgents).length > 0) ||
+                                  (compiledSubagents && Object.keys(compiledSubagents).length > 0)
                                     ? 'Select an agent'
                                     : 'No agents configured'}
                                 </h3>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {compiledSubagents && Object.keys(compiledSubagents).length > 0
+                                  {(loadedAgents && Object.keys(loadedAgents).length > 0) ||
+                                  (compiledSubagents && Object.keys(compiledSubagents).length > 0)
                                     ? 'Choose an agent from the explorer to view'
-                                    : 'Add agents to your configuration to see them here'}
+                                    : 'Add agents to your configuration or create them in .claude/agents/'}
                                 </p>
                               </div>
                             </div>
@@ -893,6 +981,21 @@ export function ConfigEditor() {
           void installSettings(true);
         }}
         onCancel={() => setShowForceInstallDialog(false)}
+      />
+
+      {/* Missing Packages Dialog */}
+      <MissingPackagesDialog
+        isOpen={showMissingPackagesDialog}
+        packages={missingPackages}
+        onInstall={installMissingPackages}
+        onSkip={() => {
+          setShowMissingPackagesDialog(false);
+          addLog({
+            level: 'warn',
+            message: 'Skipped package installation. Some features may not work correctly.',
+          });
+        }}
+        onCancel={() => setShowMissingPackagesDialog(false)}
       />
     </div>
   );

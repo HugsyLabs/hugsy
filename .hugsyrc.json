@@ -1,6 +1,5 @@
 {
   "extends": "@hugsylabs/hugsy-core/presets/recommended",
-  "env": {
-    "NODE_ENV": "development"
-  }
+  "subagents": ["@hugsylabs/subagent-security-engineer"],
+  "plugins": ["@hugsylabs/plugin-git"]
 }

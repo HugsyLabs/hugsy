@@ -65,6 +65,7 @@ export const api = {
     subagents?: Record<string, { content: string; description: string; tools?: string[] }>;
     output: string;
     error?: string;
+    missingPackages?: string[];
   }> {
     const response = await fetch(`${API_BASE}/compile`, {
       method: 'POST',
@@ -106,6 +107,29 @@ export const api = {
     });
   },
 
+  // Install npm packages
+  async installPackages(packages: string[]): Promise<{
+    success: boolean;
+    message?: string;
+    output?: string;
+    error?: string;
+    packageManager?: string;
+  }> {
+    const response = await fetch(`${API_BASE}/install-packages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packages }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error ?? 'Failed to install packages');
+    }
+
+    return result;
+  },
+
   // Install settings using hugsy install
   async installSettings(force = false): Promise<{
     settings?: Record<string, unknown> | null;
@@ -126,5 +150,21 @@ export const api = {
     }
 
     return result;
+  },
+
+  // Get agents from .claude/agents
+  async getAgents(): Promise<{
+    agents: Record<
+      string,
+      {
+        name: string;
+        description: string;
+        tools?: string[];
+        content: string;
+      }
+    >;
+  }> {
+    const response = await fetch(`${API_BASE}/agents`);
+    return response.json();
   },
 };

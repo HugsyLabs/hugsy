@@ -8,8 +8,7 @@ import { join } from 'path';
 import prompts from 'prompts';
 import { logger } from '../utils/logger.js';
 import { ProjectConfig } from '../utils/project-config.js';
-import { Compiler } from '@hugsylabs/hugsy-core';
-import { removeFromHugsyConfig } from '../utils/package-manager.js';
+import { Compiler, PackageManager } from '@hugsylabs/hugsy-core';
 
 export function uninstallCommand(): Command {
   const command = new Command('uninstall');
@@ -33,18 +32,19 @@ export function uninstallCommand(): Command {
           }
 
           let hasChanges = false;
+          const packageManager = new PackageManager(process.cwd());
 
           // Process each package
           for (const pkg of packages) {
             logger.divider();
             logger.info(`Removing ${pkg} from configuration...`);
 
-            const removed = removeFromHugsyConfig(pkg);
-            if (removed) {
+            const result = await packageManager.uninstallAndRemoveFromConfig(pkg);
+            if (result.success) {
               hasChanges = true;
-              logger.info(
-                `ℹ️  Package ${pkg} remains in node_modules (use npm/yarn/pnpm to uninstall)`
-              );
+              logger.success(result.message);
+            } else {
+              logger.warn(`Package ${pkg} not found in configuration`);
             }
           }
 
@@ -119,7 +119,7 @@ export function uninstallCommand(): Command {
         }
 
         if (!hasHugsy && !existsSync(configPath)) {
-          logger.warning('Hugsy is not installed in this project');
+          logger.warn('Hugsy is not installed in this project');
           return;
         }
 
@@ -133,7 +133,7 @@ export function uninstallCommand(): Command {
           });
 
           if (!response.confirm) {
-            logger.warning('Uninstall cancelled');
+            logger.warn('Uninstall cancelled');
             return;
           }
         }
@@ -211,7 +211,7 @@ export function uninstallCommand(): Command {
             logger.item(item);
           }
         } else {
-          logger.warning('Nothing to uninstall');
+          logger.warn('Nothing to uninstall');
         }
 
         if (options.keepConfig) {

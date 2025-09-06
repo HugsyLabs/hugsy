@@ -4,16 +4,9 @@
   "description": "Recommended settings for most projects",
 
   "permissions": {
-    "deny": [
-      "Write(*:*password=*)",
-      "Write(*:*secret=*)",
-      "Write(*:*api_key=*)",
-      "Bash(rm -rf /*)",
-      "Bash(:(){ :|:& };:)",
-      "Read(**/.env)"
-    ],
-    "ask": ["Bash(sudo *)", "Bash(npm publish)", "Write(**/production/**)"],
-    "allow": ["Read(**)", "Write(**/test/**)", "Bash(git *)", "Bash(npm test)"]
+    "deny": [],
+    "ask": ["Bash(sudo:*)", "Bash(npm publish)", "Write(**/production/**)"],
+    "allow": ["Read(**)", "Write(**/test/**)", "Bash(git:*)", "Bash(npm test)"]
   },
 
   "env": {

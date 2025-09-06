@@ -3,10 +3,12 @@
 
 import express from 'express';
 import { promises as fs } from 'fs';
+import fsSync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
-import { Compiler, InstallManager, ConfigManager } from '@hugsylabs/hugsy-core';
+import { Compiler, InstallManager, ConfigManager, PackageManager } from '@hugsylabs/hugsy-core';
+import matter from 'gray-matter';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,6 +63,7 @@ app.post('/api/compile', async (req, res) => {
     // Create compiler instance with projectRoot
     const compiler = new Compiler({
       projectRoot: PROJECT_ROOT,
+      verbose: true, // Enable verbose logging to see what's happening
     });
 
     // Capture logs
@@ -100,6 +103,15 @@ app.post('/api/compile', async (req, res) => {
         subagents[name] = subagent;
       }
 
+      // Get missing packages
+      const missingPackages = compiler.getMissingPackages();
+
+      // Debug logging
+      console.log('Original config has subagents:', config.subagents);
+      console.log('Compiled subagents:', compiledSubagents.size);
+      console.log('Missing packages:', missingPackages);
+      console.log('Compiler result settings:', result);
+
       // Restore console
       console.log = originalLog;
       console.error = originalError;
@@ -110,6 +122,7 @@ app.post('/api/compile', async (req, res) => {
         settings: result,
         commands: commands,
         subagents: subagents,
+        missingPackages: missingPackages,
         output: logs.join('\n'),
         error: null,
       });
@@ -166,6 +179,57 @@ app.get('/api/commands', async (req, res) => {
 
     res.json({ commands: result });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get subagents from .claude/agents
+app.get('/api/agents', async (req, res) => {
+  try {
+    const CLAUDE_AGENTS_PATH = path.join(PROJECT_ROOT, '.claude', 'agents');
+
+    // Check if agents directory exists
+    const exists = await fs
+      .access(CLAUDE_AGENTS_PATH)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!exists) {
+      return res.json({ agents: {} });
+    }
+
+    const files = await fs.readdir(CLAUDE_AGENTS_PATH);
+    const agents = {};
+
+    for (const file of files) {
+      if (file.endsWith('.md')) {
+        const filePath = path.join(CLAUDE_AGENTS_PATH, file);
+        const content = await fs.readFile(filePath, 'utf-8');
+
+        // Parse the markdown file with front matter
+        const { data, content: body } = matter(content);
+
+        // Extract agent name from filename
+        const agentName = file.replace('.md', '');
+
+        // Parse tools string into array if needed
+        let tools = data.tools || [];
+        if (typeof tools === 'string') {
+          tools = tools.split(',').map((t) => t.trim());
+        }
+
+        agents[agentName] = {
+          name: data.name || agentName,
+          description: data.description || '',
+          tools: tools,
+          content: body.trim(),
+        };
+      }
+    }
+
+    res.json({ agents });
+  } catch (error) {
+    console.error('Error reading agents:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -275,6 +339,47 @@ app.get('/api/settings', async (req, res) => {
   }
 });
 
+// Install npm packages
+app.post('/api/install-packages', async (req, res) => {
+  try {
+    const { packages } = req.body;
+    if (!packages || !Array.isArray(packages) || packages.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No packages provided',
+      });
+    }
+
+    // Use PackageManager from core
+    const packageManager = new PackageManager(PROJECT_ROOT);
+    const result = await packageManager.installPackages(packages);
+
+    if (result.success) {
+      // Add packages to config based on their type
+      for (const pkg of packages) {
+        const type = packageManager.detectPackageType(pkg);
+        try {
+          packageManager.addToConfig(pkg, type);
+        } catch (error) {
+          console.error(`Failed to add ${pkg} to config:`, error);
+        }
+      }
+
+      res.json(result);
+    } else {
+      // Return appropriate status code based on error
+      const statusCode =
+        result.error?.includes('404') || result.error?.includes('Not Found') ? 400 : 500;
+      res.status(statusCode).json(result);
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // Install settings using InstallManager
 app.post('/api/install', async (req, res) => {
   try {
@@ -333,6 +438,91 @@ app.post('/api/install', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
+    });
+  }
+});
+
+// Get installed packages
+app.get('/api/packages', async (req, res) => {
+  try {
+    const packageJsonPath = path.join(PROJECT_ROOT, 'package.json');
+    const packageJson = JSON.parse(fsSync.readFileSync(packageJsonPath, 'utf-8'));
+
+    const dependencies = packageJson.dependencies || {};
+    const devDependencies = packageJson.devDependencies || {};
+
+    const packages = [];
+
+    // Categorize packages based on naming convention
+    const categorizePackage = (name) => {
+      if (name.includes('preset')) return 'preset';
+      if (name.includes('plugin')) return 'plugin';
+      if (name.includes('command')) return 'command';
+      if (name.includes('subagent')) return 'subagent';
+
+      // Check by prefix
+      if (name.startsWith('@hugsylabs/subagent-')) return 'subagent';
+      if (name.startsWith('@hugsylabs/hugsy-') && name.includes('preset')) return 'preset';
+
+      return 'plugin'; // Default category
+    };
+
+    // Process all dependencies
+    Object.entries({ ...dependencies, ...devDependencies }).forEach(([name, version]) => {
+      // Include hugsy-related packages but exclude workspace packages
+      console.log(`Checking package: ${name} - ${version}`);
+      if (
+        (name.includes('hugsy') || name.includes('subagent') || name.startsWith('@hugsylabs/')) &&
+        !version.includes('workspace:')
+      ) {
+        console.log(`Including package: ${name}`);
+        packages.push({
+          name,
+          version: version.replace('^', '').replace('~', ''),
+          category: categorizePackage(name),
+          description: null, // Could be fetched from npm registry if needed
+        });
+      }
+    });
+
+    res.json({ packages });
+  } catch (error) {
+    console.error('Error getting packages:', error);
+    res.status(500).json({
+      error: 'Failed to get packages',
+      details: error.message,
+    });
+  }
+});
+
+// Uninstall package
+app.post('/api/packages/uninstall', async (req, res) => {
+  try {
+    const { package: packageName } = req.body;
+
+    if (!packageName) {
+      return res.status(400).json({ error: 'Package name is required' });
+    }
+
+    console.log(`Uninstalling package: ${packageName}`);
+
+    // Use PackageManager from core
+    const packageManager = new PackageManager(PROJECT_ROOT);
+    const result = await packageManager.uninstallAndRemoveFromConfig(packageName);
+
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(500).json({
+        error: result.message,
+        details: result.error,
+      });
+    }
+  } catch (error) {
+    console.error('Error uninstalling package:', error);
+    res.status(500).json({
+      error: 'Failed to uninstall package',
+      details: error.message,
     });
   }
 });

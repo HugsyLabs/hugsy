@@ -36,7 +36,7 @@ describe('UI Command', () => {
       stderr: { on: vi.fn() },
     };
 
-    mockSpawn.mockReturnValue(mockProcess as ReturnType<typeof spawn>);
+    mockSpawn.mockReturnValue(mockProcess as unknown as ReturnType<typeof spawn>);
   });
 
   afterEach(() => {

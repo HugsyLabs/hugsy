@@ -45,6 +45,7 @@ export class Compiler {
   private presetsCache = new Map<string, HugsyConfig>();
   private compiledCommands = new Map<string, SlashCommand>();
   private compiledSubagents = new Map<string, Subagent>();
+  private missingPackages = new Set<string>();
   private options: CompilerOptions;
 
   constructor(optionsOrRoot?: CompilerOptions | string) {
@@ -457,6 +458,7 @@ export class Compiler {
       'permissions',
       'hooks',
       'commands',
+      'subagents',
       'model',
       'apiKeyHelper',
       'cleanupPeriodDays',
@@ -1274,16 +1276,20 @@ export class Compiler {
     // Load subagent presets
     if (config.presets) {
       for (const presetName of config.presets) {
+        this.log(`Loading subagent preset: ${presetName}`);
         const preset = await this.loadModule<Record<string, unknown>>(
           presetName,
           'subagent-preset'
         );
+        this.log(`Loaded preset result: ${JSON.stringify(preset)}`);
         if (
           preset?.subagents &&
           typeof preset.subagents === 'object' &&
           preset.subagents !== null
         ) {
           this.mergeSubagents(subagents, preset.subagents as Record<string, string | Subagent>);
+        } else {
+          this.log(`Preset ${presetName} does not contain subagents`);
         }
       }
     }
@@ -1384,6 +1390,13 @@ export class Compiler {
    */
   public getCompiledSubagents(): Map<string, Subagent> {
     return this.compiledSubagents;
+  }
+
+  /**
+   * Get list of missing packages that need to be installed
+   */
+  public getMissingPackages(): string[] {
+    return Array.from(this.missingPackages);
   }
 
   /**
@@ -1774,12 +1787,23 @@ export class Compiler {
 
       return result;
     } catch (error) {
+      // Track missing packages for later installation
+      if (
+        (type === 'plugin' || type === 'subagent-preset' || type === 'command-preset') &&
+        moduleName.startsWith('@')
+      ) {
+        this.missingPackages.add(moduleName);
+      }
+
       // More detailed error logging for debugging
       if (this.options.verbose) {
         this.log(`⚠️  Failed to load ${type}: ${moduleName}`);
         this.log(`   Error: ${error instanceof Error ? error.message : String(error)}`);
-        if (type === 'plugin' && moduleName.startsWith('@hugsylabs/')) {
-          this.log(`   Try: npm install ${moduleName} or pnpm add ${moduleName}`);
+        if (
+          (type === 'plugin' || type === 'subagent-preset' || type === 'command-preset') &&
+          moduleName.startsWith('@')
+        ) {
+          this.log(`   Package will be installed when you run 'hugsy install'`);
         }
       } else {
         console.warn(`⚠️  ${type} '${moduleName}' not found or failed to load`);

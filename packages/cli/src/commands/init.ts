@@ -68,7 +68,7 @@ export function initCommand(): Command {
           ]);
 
           if (!response.preset) {
-            logger.warning('Initialization cancelled');
+            logger.warn('Initialization cancelled');
             return;
           }
 
@@ -143,7 +143,7 @@ export function initCommand(): Command {
             logger.item(`Edit ${chalk.cyan('.hugsyrc.json')} to customize your configuration`);
             logger.item(`Run ${chalk.cyan('hugsy status')} to verify installation`);
           } catch (installError) {
-            logger.warning('Failed to automatically install configuration');
+            logger.warn('Failed to automatically install configuration');
             logger.info(`Run ${chalk.cyan('hugsy install')} manually to complete setup`);
             if (process.env.HUGSY_DEBUG) {
               console.error(installError);
@@ -203,11 +203,11 @@ async function createCustomConfig(): Promise<HugsyConfig> {
       name: 'denyPatterns',
       message: 'Select operations to DENY (block completely)',
       choices: [
-        { title: 'Writing passwords/secrets to files', value: 'Write(*:*password=*)' },
+        { title: 'Writing passwords/secrets to files', value: 'Write(**/*password*)' },
         { title: 'Reading .env files', value: 'Read(**/.env)' },
         { title: 'Dangerous bash commands (rm -rf)', value: 'Bash(rm -rf /*)' },
-        { title: 'Installing npm packages globally', value: 'Bash(npm install -g *)' },
-        { title: 'Modifying git configuration', value: 'Bash(git config *)' },
+        { title: 'Installing npm packages globally', value: 'Bash(npm install -g:*)' },
+        { title: 'Modifying git configuration', value: 'Bash(git config:*)' },
       ],
     },
     {
@@ -215,7 +215,7 @@ async function createCustomConfig(): Promise<HugsyConfig> {
       name: 'askPatterns',
       message: 'Select operations to ASK permission for',
       choices: [
-        { title: 'Sudo commands', value: 'Bash(sudo *)' },
+        { title: 'Sudo commands', value: 'Bash(sudo:*)' },
         { title: 'Publishing packages', value: 'Bash(npm publish)' },
         { title: 'Modifying production files', value: 'Write(**/production/**)' },
         { title: 'Database operations', value: 'Bash(*sql*)' },

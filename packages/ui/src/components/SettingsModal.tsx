@@ -1,15 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  Moon, 
-  Sun, 
-  Palette,
-  Code,
-  Terminal,
-  Zap,
-  Shield
-} from 'lucide-react';
+import { X, Moon, Sun, Palette, Code, Terminal, Zap, Shield } from 'lucide-react';
 import useStore from '../store';
 import { cn } from '../utils/cn';
 
@@ -23,17 +14,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<'appearance' | 'editor' | 'compiler'>('appearance');
 
   const themes = [
-    { 
-      value: 'light' as const, 
-      label: 'Light', 
+    {
+      value: 'light' as const,
+      label: 'Light',
       icon: Sun,
-      preview: 'bg-white border-gray-200'
+      preview: 'bg-white border-gray-200',
     },
-    { 
-      value: 'dark' as const, 
-      label: 'Dark', 
+    {
+      value: 'dark' as const,
+      label: 'Dark',
       icon: Moon,
-      preview: 'bg-gray-900 border-gray-700'
+      preview: 'bg-gray-900 border-gray-700',
     },
   ];
 
@@ -91,10 +82,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           whileTap={{ scale: 0.98 }}
                           onClick={() => setActiveTab(tab.id)}
                           className={cn(
-                            "w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                            'w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                             activeTab === tab.id
-                              ? "bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400"
-                              : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                              ? 'bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
+                              : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
                           )}
                         >
                           <Icon className="w-4 h-4" />
@@ -124,7 +115,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             {themes.map((t) => {
                               const Icon = t.icon;
                               const isActive = theme === t.value;
-                              
+
                               return (
                                 <motion.button
                                   key={t.value}
@@ -132,10 +123,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                   whileTap={{ scale: 0.95 }}
                                   onClick={() => setTheme(t.value)}
                                   className={cn(
-                                    "relative p-4 rounded-lg border-2 transition-all",
+                                    'relative p-4 rounded-lg border-2 transition-all',
                                     isActive
-                                      ? "border-primary-500 shadow-lg"
-                                      : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                                      ? 'border-primary-500 shadow-lg'
+                                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                                   )}
                                 >
                                   {isActive && (
@@ -147,12 +138,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                       <Shield className="w-3 h-3 text-white" />
                                     </motion.div>
                                   )}
-                                  
-                                  <div className={cn(
-                                    "w-full h-20 rounded mb-3 border",
-                                    t.preview
-                                  )} />
-                                  
+
+                                  <div
+                                    className={cn('w-full h-20 rounded mb-3 border', t.preview)}
+                                  />
+
                                   <div className="flex items-center justify-center space-x-2">
                                     <Icon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                                     <span className="text-sm font-medium text-gray-900 dark:text-white">
@@ -162,29 +152,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                 </motion.button>
                               );
                             })}
-                          </div>
-                        </div>
-
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">
-                            Accent Color
-                          </h3>
-                          <div className="flex space-x-2">
-                            {['blue', 'purple', 'green', 'orange', 'pink'].map((color) => (
-                              <motion.button
-                                key={color}
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                className={cn(
-                                  "w-8 h-8 rounded-full",
-                                  color === 'blue' && "bg-blue-500",
-                                  color === 'purple' && "bg-purple-500",
-                                  color === 'green' && "bg-green-500",
-                                  color === 'orange' && "bg-orange-500",
-                                  color === 'pink' && "bg-pink-500"
-                                )}
-                              />
-                            ))}
                           </div>
                         </div>
 

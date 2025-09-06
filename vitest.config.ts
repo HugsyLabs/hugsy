@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,18 +18,18 @@ export default defineConfig({
         'tests/**',
         '*.config.*',
         '**/types/**',
-        'examples/**',        // Example configurations
-        'plugins/**',         // Example plugins  
-        '**/test-temp/**',    // Temporary test artifacts
-        '**/__tests__/**',    // Test directories
-        '**/*.test.ts',       // Test files
-        '**/*.spec.ts',       // Spec files
+        'examples/**', // Example configurations
+        'plugins/**', // Example plugins
+        '**/test-temp/**', // Temporary test artifacts
+        '**/__tests__/**', // Test directories
+        '**/*.test.ts', // Test files
+        '**/*.spec.ts', // Spec files
       ],
       thresholds: {
-        branches: 65,        // Current: 68.42%
-        functions: 60,       // Current: 65%
-        lines: 30,           // Current: 31.37%
-        statements: 30,      // Current: 31.37%
+        branches: 65, // Current: 68.42%
+        functions: 60, // Current: 65%
+        lines: 30, // Current: 31.37%
+        statements: 30, // Current: 31.37%
       },
     },
     testTimeout: 30000, // Integration tests need more time
