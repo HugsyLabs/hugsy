@@ -2,23 +2,40 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { ConfigEditor } from './components/ConfigEditor';
-import { LogViewer } from './components/LogViewer';
 import { Sidebar } from './components/Sidebar';
-import { PresetManager } from './components/PresetManager';
-import { PluginManager } from './components/PluginManager';
-import { SlashCommands } from './components/SlashCommands';
 import { InitWizard } from './components/InitWizard';
+import { Packages } from './components/Packages';
 import { api } from './services/api';
 import useStore from './store';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 
 function App() {
-  const { activeTab, theme, loadExistingSettings } = useStore();
+  const { activeTab, setActiveTab, theme, loadExistingSettings } = useStore();
   const [configExists, setConfigExists] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(true);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+
+  // Initialize keyboard shortcuts
+  useKeyboardShortcuts(() => setShowShortcutsHelp(true));
+
+  // Handle URL routing
+  useEffect(() => {
+    // Get initial tab from URL hash
+    const hash = window.location.hash.slice(1);
+    if (hash === 'packages' || hash === 'config') {
+      setActiveTab(hash);
+    }
+  }, [setActiveTab]);
+
+  // Update URL when tab changes
+  useEffect(() => {
+    window.location.hash = activeTab;
+  }, [activeTab]);
 
   useEffect(() => {
     // Check if configuration exists
-    const checkConfig = async () => {
+    const initialize = async () => {
       try {
         const exists = await api.checkConfigExists();
         setConfigExists(exists);
@@ -28,7 +45,7 @@ function App() {
           void loadExistingSettings();
         }
       } catch (error) {
-        console.error('Failed to check configuration:', error);
+        console.error('Failed to initialize:', error);
         // Assume config doesn't exist if check fails
         setConfigExists(false);
       } finally {
@@ -36,7 +53,7 @@ function App() {
       }
     };
 
-    void checkConfig();
+    void initialize();
   }, [loadExistingSettings]);
 
   useEffect(() => {
@@ -50,16 +67,9 @@ function App() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'editor':
-        return <ConfigEditor />;
-      case 'commands':
-        return <SlashCommands />;
-      case 'presets':
-        return <PresetManager />;
-      case 'plugins':
-        return <PluginManager />;
-      case 'logs':
-        return <LogViewer fullScreen />;
+      case 'packages':
+        return <Packages />;
+      case 'config':
       default:
         return <ConfigEditor />;
     }
@@ -97,7 +107,7 @@ function App() {
       <div className="relative h-screen">
         <PanelGroup direction="horizontal" className="h-full">
           {/* Sidebar Panel */}
-          <Panel defaultSize={15} minSize={12} maxSize={20}>
+          <Panel defaultSize={14} minSize={12} maxSize={20}>
             <Sidebar />
           </Panel>
 
@@ -105,7 +115,7 @@ function App() {
           <PanelResizeHandle className="w-1 bg-gray-200 dark:bg-gray-800 hover:bg-blue-500 dark:hover:bg-blue-400 transition-colors" />
 
           {/* Main Content Panel */}
-          <Panel defaultSize={85} minSize={40}>
+          <Panel defaultSize={86} minSize={40}>
             <div className="h-full flex flex-col overflow-hidden">
               {/* Content Area with Animation */}
               <main className="flex-1 overflow-hidden">
@@ -143,6 +153,12 @@ function App() {
           </Panel>
         </PanelGroup>
       </div>
+
+      {/* Keyboard shortcuts help modal */}
+      <KeyboardShortcutsHelp
+        isOpen={showShortcutsHelp}
+        onClose={() => setShowShortcutsHelp(false)}
+      />
     </div>
   );
 }

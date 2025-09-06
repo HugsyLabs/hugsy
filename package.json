@@ -14,6 +14,8 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "pnpm build && vitest run tests/",
     "test:unit": "vitest run packages/",
+    "test:cli": "vitest run packages/cli packages/core tests/",
+    "test:ui": "vitest run packages/ui",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,json,yml,yaml}\"",
     "changeset": "changeset",
     "version": "changeset version && pnpm install --lockfile-only",
@@ -45,15 +47,12 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
-    "@hugsylabs/plugin-git": "^0.0.5",
     "@hugsylabs/plugin-node": "^0.0.5",
-    "@hugsylabs/plugin-test": "^0.0.5",
-    "@hugsylabs/plugin-typescript": "^0.0.5",
     "@types/node": "^20.19.11",
     "@typescript-eslint/eslint-plugin": "^8.41.0",
     "@typescript-eslint/parser": "^8.41.0",
-    "@vitest/coverage-v8": "^1.6.1",
-    "@vitest/ui": "^1.6.1",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
@@ -62,13 +61,16 @@
     "tsx": "^4.20.5",
     "turbo": "^1.11.3",
     "typescript": "^5.3.3",
-    "vitest": "^1.6.0"
+    "vitest": "^3.2.4"
   },
   "packageManager": "pnpm@8.14.0",
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@hugsylabs/plugin-git": "^0.0.7",
+    "@hugsylabs/plugin-typescript": "^0.0.7",
+    "@hugsylabs/subagent-security-engineer": "^0.1.1",
     "ora": "^8.0.1"
   },
   "lint-staged": {

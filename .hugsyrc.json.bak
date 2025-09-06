@@ -1,0 +1,6 @@
+{
+  "extends": "@hugsylabs/hugsy-core/presets/recommended",
+  "env": {
+    "NODE_ENV": "development"
+  }
+}

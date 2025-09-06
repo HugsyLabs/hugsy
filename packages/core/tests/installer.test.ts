@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { InstallManager } from '../src/installer/index.js';
 import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import type { ClaudeSettings, SlashCommand } from '@hugsylabs/hugsy-types';
+import type { ClaudeSettings, SlashCommand, Subagent } from '@hugsylabs/hugsy-types';
 
 describe('InstallManager', () => {
   const testDir = '/tmp/hugsy-installer-test-' + Date.now();
@@ -99,7 +99,6 @@ describe('InstallManager', () => {
         [
           'test-cmd',
           {
-            name: 'test-cmd',
             content: 'Test command content',
             description: 'Test command',
           },
@@ -107,7 +106,6 @@ describe('InstallManager', () => {
         [
           'help',
           {
-            name: 'help',
             content: 'Help content',
             category: 'docs',
           },
@@ -137,7 +135,6 @@ describe('InstallManager', () => {
         [
           'api',
           {
-            name: 'api',
             content: 'API command content',
             description: 'API helper',
             argumentHint: '[endpoint]',
@@ -154,6 +151,47 @@ describe('InstallManager', () => {
       expect(cmdContent).toContain('argument-hint: [endpoint]');
       expect(cmdContent).toContain('model: claude-3-sonnet');
       expect(cmdContent).toContain('allowed-tools: WebSearch, Read');
+    });
+
+    it('should install subagents', () => {
+      const subagents = new Map<string, Subagent>([
+        [
+          'code-reviewer',
+          {
+            name: 'code-reviewer',
+            description: 'Reviews code for quality and best practices',
+            tools: ['Read', 'Grep'],
+            content: 'You are a code review assistant...',
+          },
+        ],
+        [
+          'test-writer',
+          {
+            name: 'test-writer',
+            description: 'Writes comprehensive test cases',
+            content: 'You are a test writing assistant...',
+          },
+        ],
+      ]);
+
+      const result = installer.install(mockSettings, undefined, subagents);
+
+      expect(result.success).toBe(true);
+      expect(result.agentsCount).toBe(2);
+      expect(result.agentsPath).toBe(join(testDir, '.claude', 'agents'));
+
+      // Check agent files
+      expect(existsSync(join(testDir, '.claude', 'agents', 'code-reviewer.md'))).toBe(true);
+      expect(existsSync(join(testDir, '.claude', 'agents', 'test-writer.md'))).toBe(true);
+
+      const reviewerContent = readFileSync(
+        join(testDir, '.claude', 'agents', 'code-reviewer.md'),
+        'utf-8'
+      );
+      expect(reviewerContent).toContain('name: code-reviewer');
+      expect(reviewerContent).toContain('description: Reviews code for quality and best practices');
+      expect(reviewerContent).toContain('tools: Read, Grep');
+      expect(reviewerContent).toContain('You are a code review assistant...');
     });
   });
 

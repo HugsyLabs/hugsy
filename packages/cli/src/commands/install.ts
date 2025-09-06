@@ -8,12 +8,7 @@ import { join } from 'path';
 import prompts from 'prompts';
 import { logger } from '../utils/logger.js';
 import { ProjectConfig } from '../utils/project-config.js';
-import { Compiler, InstallManager } from '@hugsylabs/hugsy-core';
-import {
-  detectPackageType,
-  installNpmPackage,
-  updateHugsyConfig,
-} from '../utils/package-manager.js';
+import { Compiler, InstallManager, PackageManager } from '@hugsylabs/hugsy-core';
 
 export function installCommand(): Command {
   const command = new Command('install');
@@ -38,27 +33,37 @@ export function installCommand(): Command {
         }
 
         let hasChanges = false;
+        const packageManager = new PackageManager(process.cwd());
 
         for (const pkg of packages) {
           logger.divider();
 
           // Detect package type
-          const type = detectPackageType(pkg, options);
+          const type = packageManager.detectPackageType(pkg, {
+            plugin: options.plugin,
+            preset: options.preset,
+          });
           logger.info(`Processing ${pkg} as ${type}`);
 
-          // Install npm package (if not a local file)
-          if (!pkg.startsWith('./') && !pkg.startsWith('../') && !pkg.startsWith('/')) {
-            const installed = installNpmPackage(pkg);
-            if (!installed) {
-              logger.error(`Failed to install ${pkg}, skipping...`);
-              continue;
-            }
-          }
+          // Install and add to config using core PackageManager
+          const result = await packageManager.installAndAddToConfig(pkg, {
+            plugin: options.plugin,
+            preset: options.preset,
+          });
 
-          // Update configuration
-          const updated = updateHugsyConfig(pkg, type);
-          if (updated) {
+          if (result.success) {
+            logger.success(result.message);
             hasChanges = true;
+          } else {
+            // Check if it's because package already exists
+            if (result.message.includes('already in configuration')) {
+              logger.warn(result.message);
+            } else {
+              logger.error(result.message);
+              if (result.error) {
+                logger.error(result.error);
+              }
+            }
           }
         }
 
@@ -78,7 +83,7 @@ export function installCommand(): Command {
       try {
         // 1. Check if .hugsyrc.json exists
         if (!ProjectConfig.exists()) {
-          logger.warning('No .hugsyrc.json found. Run "hugsy init" first to create configuration.');
+          logger.warn('No .hugsyrc.json found. Run "hugsy init" first to create configuration.');
           return;
         }
 
@@ -94,18 +99,68 @@ export function installCommand(): Command {
         });
         const compiledSettings = await compiler.compile(hugsyConfig);
 
+        // Check for missing packages
+        const missingPackages = compiler.getMissingPackages();
+        if (missingPackages.length > 0) {
+          logger.warn(`Found ${missingPackages.length} missing package(s):`);
+          missingPackages.forEach((pkg) => {
+            logger.item(pkg, '📦');
+          });
+
+          // Only prompt in interactive mode
+          if (process.stdin.isTTY) {
+            const { install } = await prompts({
+              type: 'confirm',
+              name: 'install',
+              message: `Install ${missingPackages.length} missing package(s) now?`,
+              initial: true,
+            });
+
+            if (install) {
+              logger.info('Installing missing packages...');
+
+              // Use PackageManager from core
+              const packageManager = new PackageManager(process.cwd());
+              const result = await packageManager.installPackages(missingPackages);
+
+              if (result.success) {
+                logger.success('Packages installed successfully!');
+                logger.info('Recompiling with new packages...');
+
+                // Recompile with the newly installed packages
+                await compiler.compile(hugsyConfig);
+              } else {
+                logger.error(`Failed to install packages: ${result.error ?? 'Unknown error'}`);
+                logger.info('Please install manually and try again');
+                return;
+              }
+            } else {
+              logger.warn('Continuing without missing packages - some features may not work');
+            }
+          } else {
+            // Detect package manager for the message
+            const pm = new PackageManager(process.cwd());
+            const detectedPm = pm.detectPackageManager();
+            const installCmd =
+              detectedPm === 'yarn' ? 'add' : detectedPm === 'npm' ? 'install' : 'add';
+            logger.info(`Run: ${detectedPm} ${installCmd} ${missingPackages.join(' ')}`);
+            logger.info('Then run hugsy install again');
+            return;
+          }
+        }
+
         // Use InstallManager for installation
         const installer = new InstallManager({
           projectRoot: process.cwd(),
           force: options.force,
           verbose: options.verbose ?? process.env.HUGSY_DEBUG === 'true',
-          backup: options.backup !== false,
+          backup: false,
         });
 
         // Check if settings already exist (for interactive prompt)
         const existing = installer.checkExisting();
         if (existing.exists && !options.force) {
-          logger.warning('Project already has .claude/settings.json');
+          logger.warn('Project already has .claude/settings.json');
 
           // Skip interactive prompt if not in TTY (non-interactive mode)
           const isTTY = process.stdin.isTTY;
@@ -130,16 +185,17 @@ export function installCommand(): Command {
           options.force = true;
         }
 
-        // Install settings and commands
+        // Install settings, commands, and subagents
         const commands = compiler.getCompiledCommands();
+        const subagents = compiler.getCompiledSubagents();
         const installResult = options.force
           ? new InstallManager({
               projectRoot: process.cwd(),
               force: true,
               verbose: options.verbose ?? process.env.HUGSY_DEBUG === 'true',
-              backup: options.backup !== false,
-            }).install(compiledSettings, commands)
-          : installer.install(compiledSettings, commands);
+              backup: false,
+            }).install(compiledSettings, commands, subagents)
+          : installer.install(compiledSettings, commands, subagents);
 
         if (!installResult.success) {
           logger.error(installResult.message);
@@ -158,6 +214,13 @@ export function installCommand(): Command {
         if (installResult.commandsCount && installResult.commandsCount > 0) {
           logger.success(
             `Generated ${installResult.commandsCount} slash command${installResult.commandsCount > 1 ? 's' : ''}`
+          );
+        }
+
+        // Report on subagents
+        if (installResult.agentsCount && installResult.agentsCount > 0) {
+          logger.success(
+            `Generated ${installResult.agentsCount} subagent${installResult.agentsCount > 1 ? 's' : ''}`
           );
         }
 
@@ -249,13 +312,13 @@ export function installCommand(): Command {
           } catch {
             // If we can't read .gitignore, show the warning anyway
             if (options.verbose) {
-              logger.warning('Could not read .gitignore, showing commit warning');
+              logger.warn('Could not read .gitignore, showing commit warning');
             }
           }
         }
 
         if (shouldShowCommitWarning) {
-          logger.warning('Make sure to commit .claude/settings.json to version control');
+          logger.warn('Make sure to commit .claude/settings.json to version control');
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);

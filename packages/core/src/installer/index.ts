@@ -4,7 +4,7 @@
 
 import { writeFileSync, existsSync, mkdirSync, rmSync, readdirSync, copyFileSync } from 'fs';
 import { join } from 'path';
-import type { ClaudeSettings, SlashCommand } from '@hugsylabs/hugsy-types';
+import type { ClaudeSettings, SlashCommand, Subagent } from '@hugsylabs/hugsy-types';
 
 export interface InstallOptions {
   projectRoot: string;
@@ -18,6 +18,8 @@ export interface InstallResult {
   settingsPath: string;
   commandsPath?: string;
   commandsCount?: number;
+  agentsPath?: string;
+  agentsCount?: number;
   backupPath?: string;
   message: string;
   errors?: string[];
@@ -33,13 +35,18 @@ export class InstallManager {
   }
 
   /**
-   * Install compiled settings and commands to .claude directory
+   * Install compiled settings, commands, and subagents to .claude directory
    */
-  install(settings: ClaudeSettings, commands?: Map<string, SlashCommand>): InstallResult {
+  install(
+    settings: ClaudeSettings,
+    commands?: Map<string, SlashCommand>,
+    subagents?: Map<string, Subagent>
+  ): InstallResult {
     const errors: string[] = [];
     const claudeDir = join(this.projectRoot, '.claude');
     const settingsPath = join(claudeDir, 'settings.json');
     const commandsDir = join(claudeDir, 'commands');
+    const agentsDir = join(claudeDir, 'agents');
 
     try {
       // 1. Create .claude directory if needed
@@ -78,11 +85,20 @@ export class InstallManager {
         this.log(`Wrote ${commandsCount} slash commands`);
       }
 
+      // 5. Write subagents if provided
+      let agentsCount = 0;
+      if (subagents && subagents.size > 0) {
+        agentsCount = this.writeSubagents(subagents, agentsDir);
+        this.log(`Wrote ${agentsCount} subagents`);
+      }
+
       return {
         success: true,
         settingsPath,
         commandsPath: commands && commands.size > 0 ? commandsDir : undefined,
         commandsCount,
+        agentsPath: subagents && subagents.size > 0 ? agentsDir : undefined,
+        agentsCount,
         backupPath,
         message: 'Installation completed successfully',
       };
@@ -174,6 +190,47 @@ export class InstallManager {
   }
 
   /**
+   * Write subagents to files
+   */
+  private writeSubagents(subagents: Map<string, Subagent>, agentsDir: string): number {
+    // Clean existing agents directory if force flag is set
+    if (this.options.force && existsSync(agentsDir)) {
+      rmSync(agentsDir, { recursive: true, force: true });
+      this.log('Cleaned existing agents directory');
+    }
+
+    // Create agents directory
+    if (!existsSync(agentsDir)) {
+      mkdirSync(agentsDir, { recursive: true });
+    }
+
+    let agentCount = 0;
+    for (const [name, agent] of subagents) {
+      const fileName = `${name}.md`;
+      const filePath = join(agentsDir, fileName);
+
+      // Build agent content with frontmatter
+      let content = '---\n';
+      content += `name: ${agent.name}\n`;
+      content += `description: ${agent.description}\n`;
+      if (agent.tools && agent.tools.length > 0) {
+        content += `tools: ${agent.tools.join(', ')}\n`;
+      }
+      content += '---\n\n';
+      content += agent.content;
+
+      writeFileSync(filePath, content);
+      agentCount++;
+
+      if (this.options.verbose) {
+        this.log(`  Created agent: ${name} → agents/${name}.md`);
+      }
+    }
+
+    return agentCount;
+  }
+
+  /**
    * Create backup of existing file
    */
   private createBackup(filePath: string): string {
@@ -197,10 +254,15 @@ export class InstallManager {
   /**
    * Uninstall settings and commands
    */
-  uninstall(options?: { keepSettings?: boolean; keepCommands?: boolean }): InstallResult {
+  uninstall(options?: {
+    keepSettings?: boolean;
+    keepCommands?: boolean;
+    keepAgents?: boolean;
+  }): InstallResult {
     const claudeDir = join(this.projectRoot, '.claude');
     const settingsPath = join(claudeDir, 'settings.json');
     const commandsDir = join(claudeDir, 'commands');
+    const agentsDir = join(claudeDir, 'agents');
     const removed: string[] = [];
 
     try {
@@ -214,6 +276,12 @@ export class InstallManager {
       if (!options?.keepCommands && existsSync(commandsDir)) {
         rmSync(commandsDir, { recursive: true, force: true });
         removed.push('commands directory');
+      }
+
+      // Remove agents directory
+      if (!options?.keepAgents && existsSync(agentsDir)) {
+        rmSync(agentsDir, { recursive: true, force: true });
+        removed.push('agents directory');
       }
 
       // Remove .claude directory if empty

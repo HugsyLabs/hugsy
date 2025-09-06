@@ -28,17 +28,15 @@ export interface PermissionSettings {
   deny: string[];
 }
 
-export interface HookSettings {
-  [hookType: string]: HookConfig | HookConfig[];
-}
+export type HookSettings = Record<string, HookConfig | HookConfig[]>;
 
 export interface HookConfig {
   matcher?: string;
-  hooks?: Array<{
+  hooks?: {
     type: 'command';
     command: string;
     timeout?: number;
-  }>;
+  }[];
   command?: string;
   timeout?: number;
 }
@@ -46,8 +44,8 @@ export interface HookConfig {
 export interface StatusLineConfig {
   type: 'command' | 'static';
   command?: string;
-  value?: string;  // For static type
-  text?: string;   // Deprecated, kept for backward compatibility
+  value?: string; // For static type
+  text?: string; // Deprecated, kept for backward compatibility
 }
 
 // Slash Commands types
@@ -64,6 +62,20 @@ export interface SlashCommandsConfig {
   presets?: string[]; // Referenced command packages
   files?: string[]; // Local file glob patterns
   commands?: Record<string, string | SlashCommand>; // Direct definitions
+}
+
+// Subagents types
+export interface Subagent {
+  name: string; // Subagent identifier
+  description: string; // When this subagent should be invoked
+  tools?: string[]; // Specific tools (inherits all if omitted)
+  content: string; // System prompt (markdown)
+}
+
+export interface SubagentsConfig {
+  presets?: string[]; // Referenced subagent packages
+  files?: string[]; // Local file glob patterns
+  agents?: Record<string, string | Subagent>; // Direct definitions
 }
 
 // Hugsy Configuration types
@@ -88,6 +100,9 @@ export interface HugsyConfig {
 
   // Slash commands configuration
   commands?: SlashCommandsConfig | string[]; // Support shorthand
+
+  // Subagents configuration
+  subagents?: SubagentsConfig | string[]; // Support shorthand
 
   // Claude settings passthrough
   model?: string;
@@ -142,7 +157,7 @@ export type HookType =
 
 export interface HookInput {
   tool_name?: string;
-  tool_input?: any;
+  tool_input?: unknown;
   tool_response?: {
     success: boolean;
     output?: string;

@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Terminal, 
-  Trash2, 
-  Info, 
-  AlertTriangle, 
+import {
+  Terminal,
+  Trash2,
+  Info,
+  AlertTriangle,
   AlertCircle,
   CheckCircle,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-react';
 import useStore from '../store';
 import type { LogEntry } from '../store';
@@ -31,12 +31,12 @@ export function LogViewer({ fullScreen = false }: LogViewerProps) {
     }
   }, [logs]);
 
-  // 明确类型：LogEntry[]
-  const filteredLogs: LogEntry[] = logs.filter((log: LogEntry): boolean => 
-    logFilter === 'all' || log.level === logFilter
+  // Explicit type: LogEntry[]
+  const filteredLogs: LogEntry[] = logs.filter(
+    (log: LogEntry): boolean => logFilter === 'all' || log.level === logFilter
   );
 
-  // 明确类型：Record<LogLevel, string>
+  // Explicit type: Record<LogLevel, string>
   const levelColors: Record<LogLevel, string> = {
     info: 'text-blue-600 dark:text-blue-400',
     warn: 'text-yellow-600 dark:text-yellow-400',
@@ -44,8 +44,8 @@ export function LogViewer({ fullScreen = false }: LogViewerProps) {
     success: 'text-green-600 dark:text-green-400',
   };
 
-  // 明确类型：{value: LogFilter, label: string}[]
-  const filters: {value: LogFilter, label: string}[] = [
+  // Explicit type: {value: LogFilter, label: string}[]
+  const filters: { value: LogFilter; label: string }[] = [
     { value: 'all', label: 'All' },
     { value: 'info', label: 'Info' },
     { value: 'warn', label: 'Warnings' },
@@ -54,15 +54,16 @@ export function LogViewer({ fullScreen = false }: LogViewerProps) {
   ];
 
   return (
-    <div className={cn(
-      "flex flex-col bg-gray-50 dark:bg-gray-900",
-      fullScreen ? "h-full" : "h-full"
-    )}>
+    <div
+      className={cn('flex flex-col bg-gray-50 dark:bg-gray-900', fullScreen ? 'h-full' : 'h-full')}
+    >
       {/* Header */}
       <div className="bg-gray-50 dark:bg-gray-800/50 px-4 h-[42px] flex items-center border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center space-x-2">
           <Terminal className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Execution Logs</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Execution Logs
+          </span>
         </div>
       </div>
 
@@ -71,15 +72,15 @@ export function LogViewer({ fullScreen = false }: LogViewerProps) {
         <div className="flex items-center space-x-2">
           {/* Filter Buttons */}
           <div className="flex items-center space-x-1 bg-gray-200 dark:bg-gray-700/50 rounded-lg p-0.5">
-            {filters.map((filter: {value: LogFilter, label: string}) => (
+            {filters.map((filter: { value: LogFilter; label: string }) => (
               <button
                 key={filter.value}
                 onClick={() => setLogFilter(filter.value)}
                 className={cn(
-                  "px-2 py-1 text-xs rounded transition-colors",
+                  'px-2 py-1 text-xs rounded transition-colors',
                   logFilter === filter.value
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-300 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600"
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-300 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600'
                 )}
               >
                 {filter.label}
@@ -87,7 +88,7 @@ export function LogViewer({ fullScreen = false }: LogViewerProps) {
             ))}
           </div>
         </div>
-        
+
         {/* Clear Button */}
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -101,7 +102,7 @@ export function LogViewer({ fullScreen = false }: LogViewerProps) {
       </div>
 
       {/* Log Content */}
-      <div 
+      <div
         ref={scrollRef}
         className="flex-1 overflow-auto p-4 font-mono text-xs space-y-1 bg-white dark:bg-gray-900"
       >
@@ -115,8 +116,8 @@ export function LogViewer({ fullScreen = false }: LogViewerProps) {
           <AnimatePresence initial={false}>
             {filteredLogs.map((log: LogEntry) => {
               const colorClass: string = levelColors[log.level];
-              const iconClass: string = cn("w-3 h-3 mt-0.5 flex-shrink-0", colorClass);
-              
+              const iconClass: string = cn('w-3 h-3 mt-0.5 flex-shrink-0', colorClass);
+
               return (
                 <motion.div
                   key={log.id}
@@ -125,15 +126,15 @@ export function LogViewer({ fullScreen = false }: LogViewerProps) {
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.2 }}
                   className={cn(
-                    "flex items-start space-x-2 py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800/50 group"
+                    'flex items-start space-x-2 py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800/50 group'
                   )}
                 >
                   {/* Timestamp */}
                   <span className="text-gray-600 dark:text-gray-500 whitespace-nowrap">
                     {log.timestamp.toLocaleTimeString()}
                   </span>
-                  
-                  {/* Level Icon - 使用三元运算符避免TypeScript类型推断问题 */}
+
+                  {/* Level Icon - Using ternary operator to avoid TypeScript type inference issues */}
                   {log.level === 'info' ? (
                     <Info className={iconClass} />
                   ) : log.level === 'warn' ? (
@@ -143,12 +144,12 @@ export function LogViewer({ fullScreen = false }: LogViewerProps) {
                   ) : log.level === 'success' ? (
                     <CheckCircle className={iconClass} />
                   ) : null}
-                  
+
                   {/* Message */}
                   <span className="flex-1 text-gray-700 dark:text-gray-300 break-words whitespace-pre-wrap">
                     {log.message}
                   </span>
-                  
+
                   {/* Details indicator */}
                   {log.details ? (
                     <ChevronRight className="w-3 h-3 mt-0.5 text-gray-600 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />

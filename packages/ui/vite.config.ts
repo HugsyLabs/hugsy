@@ -18,5 +18,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'monaco-editor': ['@monaco-editor/react'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 500,
   },
 });

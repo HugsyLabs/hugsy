@@ -15,6 +15,7 @@ import { installCommand } from './commands/install.js';
 import { initCommand } from './commands/init.js';
 import { uninstallCommand } from './commands/uninstall.js';
 import { statusCommand } from './commands/status.js';
+import { uiCommand } from './commands/ui.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -34,8 +35,9 @@ program
     'after',
     `
 ${chalk.gray('Examples:')}
+  ${chalk.cyan('hugsy ui')}              Launch the web UI
+  ${chalk.cyan('hugsy init')}            Initialize configuration  
   ${chalk.cyan('hugsy install')}         Install Hugsy to Claude Code
-  ${chalk.cyan('hugsy init security')}   Initialize project with security preset
   ${chalk.cyan('hugsy status')}          Show current status
   ${chalk.cyan('hugsy uninstall')}       Remove Hugsy from Claude Code
 
@@ -49,6 +51,7 @@ program.addCommand(installCommand());
 program.addCommand(initCommand());
 program.addCommand(uninstallCommand());
 program.addCommand(statusCommand());
+program.addCommand(uiCommand());
 
 // Parse arguments
 program.parse(process.argv);

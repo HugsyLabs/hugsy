@@ -34,7 +34,7 @@ function runCommand(command: string, args: string[] = []): Promise<TestResult> {
     proc.stderr.on('data', (data) => (stderr += data.toString()));
 
     proc.on('close', (code: number | null) => {
-      resolve({ code: code || 0, stdout, stderr });
+      resolve({ code: code ?? 0, stdout, stderr });
     });
   });
 }
@@ -56,13 +56,13 @@ describe('Package Management Integration Tests', () => {
   describe('init with automatic installation', () => {
     it('should initialize and install configuration automatically', async () => {
       const result = await runCommand('init', ['recommended']);
-      
+
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('Created .hugsyrc.json');
       expect(result.stdout).toContain('Created .claude directory');
       expect(result.stdout).toContain('Created .claude/settings.json');
       expect(result.stdout).toContain('Hugsy initialized and installed successfully!');
-      
+
       // Verify files were created
       expect(existsSync(join(TEST_DIR, '.hugsyrc.json'))).toBe(true);
       expect(existsSync(join(TEST_DIR, '.claude/settings.json'))).toBe(true);
@@ -72,14 +72,14 @@ describe('Package Management Integration Tests', () => {
       // Clean up first
       rmSync(join(TEST_DIR, '.hugsyrc.json'), { force: true });
       rmSync(join(TEST_DIR, '.claude'), { recursive: true, force: true });
-      
+
       const result = await runCommand('init', ['recommended', '--no-install']);
-      
+
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('Created .hugsyrc.json');
       expect(result.stdout).not.toContain('Created .claude directory');
       expect(result.stdout).toContain('Run hugsy install to compile and activate');
-      
+
       // Verify only config was created
       expect(existsSync(join(TEST_DIR, '.hugsyrc.json'))).toBe(true);
       expect(existsSync(join(TEST_DIR, '.claude/settings.json'))).toBe(false);
@@ -107,13 +107,13 @@ export default {
   }
 }`;
       writeFileSync(pluginPath, pluginContent);
-      
+
       const result = await runCommand('install', ['./test-plugin.mjs', '--force']);
-      
+
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('Processing ./test-plugin.mjs as plugin');
-      expect(result.stdout).toContain('Added plugin to configuration');
-      
+      expect(result.stdout).toContain('Added local plugin to configuration');
+
       // Verify config was updated
       const config = JSON.parse(readFileSync(join(TEST_DIR, '.hugsyrc.json'), 'utf8'));
       expect(config.plugins).toContain('./test-plugin.mjs');
@@ -122,26 +122,31 @@ export default {
     it('should add local preset to configuration', async () => {
       // Create a test preset
       const presetPath = join(TEST_DIR, 'test-preset.json');
-      const presetContent = JSON.stringify({
-        env: {
-          PRESET_VAR: 'from_preset'
+      const presetContent = JSON.stringify(
+        {
+          env: {
+            PRESET_VAR: 'from_preset',
+          },
+          permissions: {
+            allow: ['Read(**/*.md)'],
+          },
         },
-        permissions: {
-          allow: ['Read(**/*.md)']
-        }
-      }, null, 2);
+        null,
+        2
+      );
       writeFileSync(presetPath, presetContent);
-      
+
       const result = await runCommand('install', ['./test-preset.json', '--force']);
-      
+
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('Processing ./test-preset.json as preset');
-      expect(result.stdout).toContain('Added preset to configuration');
-      
+      expect(result.stdout).toContain('Added local preset to configuration');
+
       // Verify config was updated
       const config = JSON.parse(readFileSync(join(TEST_DIR, '.hugsyrc.json'), 'utf8'));
-      expect(Array.isArray(config.extends) ? config.extends : [config.extends])
-        .toContain('./test-preset.json');
+      expect(Array.isArray(config.extends) ? config.extends : [config.extends]).toContain(
+        './test-preset.json'
+      );
     });
 
     it('should handle multiple packages in one command', async () => {
@@ -155,22 +160,19 @@ export default {
   }
 }`;
       writeFileSync(plugin2Path, plugin2Content);
-      
-      const result = await runCommand('install', [
-        './another-plugin.mjs',
-        '--force'
-      ]);
-      
+
+      const result = await runCommand('install', ['./another-plugin.mjs', '--force']);
+
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('Processing ./another-plugin.mjs as plugin');
-      
+
       const config = JSON.parse(readFileSync(join(TEST_DIR, '.hugsyrc.json'), 'utf8'));
       expect(config.plugins).toContain('./another-plugin.mjs');
     });
 
     it('should detect duplicate packages', async () => {
       const result = await runCommand('install', ['./test-plugin.mjs', '--force']);
-      
+
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('already in configuration');
     });
@@ -179,11 +181,11 @@ export default {
   describe('uninstall packages', () => {
     it('should remove plugin from configuration', async () => {
       const result = await runCommand('uninstall', ['./test-plugin.mjs']);
-      
+
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('Removing ./test-plugin.mjs from configuration');
-      expect(result.stdout).toContain('Removed plugin from configuration');
-      
+      expect(result.stdout).toContain('Removed local plugin from configuration');
+
       // Verify config was updated
       const config = JSON.parse(readFileSync(join(TEST_DIR, '.hugsyrc.json'), 'utf8'));
       expect(config.plugins).not.toContain('./test-plugin.mjs');
@@ -191,11 +193,11 @@ export default {
 
     it('should remove preset from configuration', async () => {
       const result = await runCommand('uninstall', ['./test-preset.json']);
-      
+
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('Removing ./test-preset.json from configuration');
-      expect(result.stdout).toContain('Removed preset from configuration');
-      
+      expect(result.stdout).toContain('Removed local preset from configuration');
+
       // Verify config was updated
       const config = JSON.parse(readFileSync(join(TEST_DIR, '.hugsyrc.json'), 'utf8'));
       const extends_ = Array.isArray(config.extends) ? config.extends : [config.extends];
@@ -204,7 +206,7 @@ export default {
 
     it('should handle non-existent packages gracefully', async () => {
       const result = await runCommand('uninstall', ['./non-existent.js']);
-      
+
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('not found in configuration');
     });
@@ -212,26 +214,26 @@ export default {
     it('should uninstall multiple packages', async () => {
       // First add them back
       await runCommand('install', ['./test-plugin.mjs', './another-plugin.mjs', '--force']);
-      
+
       const result = await runCommand('uninstall', ['./test-plugin.mjs', './another-plugin.mjs']);
-      
+
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('Configuration updated successfully');
-      
+
       const config = JSON.parse(readFileSync(join(TEST_DIR, '.hugsyrc.json'), 'utf8'));
-      expect(config.plugins || []).not.toContain('./test-plugin.mjs');
-      expect(config.plugins || []).not.toContain('./another-plugin.mjs');
+      expect(config.plugins ?? []).not.toContain('./test-plugin.mjs');
+      expect(config.plugins ?? []).not.toContain('./another-plugin.mjs');
     });
   });
 
   describe('uninstall hugsy entirely', () => {
     it('should uninstall hugsy when no packages provided', async () => {
       const result = await runCommand('uninstall', ['--yes']);
-      
+
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('Uninstalling Hugsy');
       expect(result.stdout).toContain('Removed .hugsyrc.json');
-      
+
       // Verify config was removed
       expect(existsSync(join(TEST_DIR, '.hugsyrc.json'))).toBe(false);
     });

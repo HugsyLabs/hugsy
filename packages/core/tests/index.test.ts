@@ -27,6 +27,8 @@ describe('Hugsy Compiler', () => {
       const config: HugsyConfig = {
         permissions: {
           allow: ['Read(**)', 'Write(**/*.ts)'],
+          ask: [],
+          deny: [],
         },
       };
 
@@ -114,7 +116,12 @@ describe('Hugsy Compiler', () => {
 
       const result = await compiler.compile(config);
 
-      expect(result.hooks?.PostToolUse?.[0].matcher).toBe('Bash');
+      const hooks = result.hooks?.PostToolUse;
+      if (Array.isArray(hooks)) {
+        expect(hooks[0].matcher).toBe('Bash');
+      } else {
+        expect(hooks?.matcher).toBe('Bash');
+      }
     });
 
     it('should merge hooks with the same matcher', async () => {
@@ -135,21 +142,24 @@ describe('Hugsy Compiler', () => {
 
       const result = await compiler.compile(config);
 
-      expect(result.hooks?.PreToolUse).toHaveLength(1);
-      expect(result.hooks?.PreToolUse?.[0].matcher).toBe('Write');
-      expect(result.hooks?.PreToolUse?.[0].hooks).toHaveLength(2);
-      expect(result.hooks?.PreToolUse?.[0].hooks).toEqual([
-        {
-          type: 'command',
-          command: 'echo "First write hook"',
-          timeout: 3000,
-        },
-        {
-          type: 'command',
-          command: 'echo "Second write hook"',
-          timeout: 3000,
-        },
-      ]);
+      const preHooks = result.hooks?.PreToolUse;
+      expect(preHooks).toHaveLength(1);
+      if (Array.isArray(preHooks)) {
+        expect(preHooks[0].matcher).toBe('Write');
+        expect(preHooks[0].hooks).toHaveLength(2);
+        expect(preHooks[0].hooks).toEqual([
+          {
+            type: 'command',
+            command: 'echo "First write hook"',
+            timeout: 3000,
+          },
+          {
+            type: 'command',
+            command: 'echo "Second write hook"',
+            timeout: 3000,
+          },
+        ]);
+      }
     });
 
     it('should handle wildcard matcher correctly', async () => {
@@ -166,7 +176,12 @@ describe('Hugsy Compiler', () => {
 
       const result = await compiler.compile(config);
 
-      expect(result.hooks?.PreToolUse?.[0].matcher).toBe('*');
+      const hooks = result.hooks?.PreToolUse;
+      if (Array.isArray(hooks)) {
+        expect(hooks[0].matcher).toBe('*');
+      } else {
+        expect(hooks?.matcher).toBe('*');
+      }
     });
 
     it('should preserve already correct hook format', async () => {
@@ -223,8 +238,13 @@ describe('Hugsy Compiler', () => {
       // Should have 2 entries: one for Bash (merged) and one for Write
       expect(settings.hooks?.PreToolUse).toHaveLength(2);
 
-      const bashHook = settings.hooks?.PreToolUse?.find((h) => h.matcher === 'Bash');
-      const writeHook = settings.hooks?.PreToolUse?.find((h) => h.matcher === 'Write');
+      const preHooks = settings.hooks?.PreToolUse;
+      const bashHook = Array.isArray(preHooks)
+        ? preHooks.find((h) => h.matcher === 'Bash')
+        : undefined;
+      const writeHook = Array.isArray(preHooks)
+        ? preHooks.find((h) => h.matcher === 'Write')
+        : undefined;
 
       // Bash should have all 3 commands merged
       expect(bashHook?.hooks).toHaveLength(3);
@@ -270,8 +290,13 @@ describe('Hugsy Compiler', () => {
       // Should have 2 entries: one for * and one for Bash
       expect(settings.hooks?.PostToolUse).toHaveLength(2);
 
-      const wildcardHook = settings.hooks?.PostToolUse?.find((h) => h.matcher === '*');
-      const bashHook = settings.hooks?.PostToolUse?.find((h) => h.matcher === 'Bash');
+      const postHooks = settings.hooks?.PostToolUse;
+      const wildcardHook = Array.isArray(postHooks)
+        ? postHooks.find((h) => h.matcher === '*')
+        : undefined;
+      const bashHook = Array.isArray(postHooks)
+        ? postHooks.find((h) => h.matcher === 'Bash')
+        : undefined;
 
       // Wildcard should have both wildcard commands
       expect(wildcardHook?.hooks).toHaveLength(2);
@@ -299,8 +324,13 @@ describe('Hugsy Compiler', () => {
       const result = await compiler.compile(config);
       const settings = result;
 
-      const readHook = settings.hooks?.UserPromptSubmit?.find((h) => h.matcher === 'Read');
-      const writeHook = settings.hooks?.UserPromptSubmit?.find((h) => h.matcher === 'Write');
+      const userHooks = settings.hooks?.UserPromptSubmit;
+      const readHook = Array.isArray(userHooks)
+        ? userHooks.find((h) => h.matcher === 'Read')
+        : undefined;
+      const writeHook = Array.isArray(userHooks)
+        ? userHooks.find((h) => h.matcher === 'Write')
+        : undefined;
 
       // Commands should be in order they appeared
       expect(readHook?.hooks?.map((h) => h.command)).toEqual(['cmd1', 'cmd3', 'cmd5']);
@@ -340,12 +370,17 @@ describe('Hugsy Compiler', () => {
       expect(settings.hooks?.PreToolUse).toHaveLength(2);
 
       // Simple format should get * matcher
-      const wildcardHook = settings.hooks?.PreToolUse?.find((h) => h.matcher === '*');
+      const preHooks = settings.hooks?.PreToolUse;
+      const wildcardHook = Array.isArray(preHooks)
+        ? preHooks.find((h) => h.matcher === '*')
+        : undefined;
       expect(wildcardHook?.hooks).toHaveLength(1);
       expect(wildcardHook?.hooks?.[0].command).toBe('echo "simple"');
 
       // Nested format should keep its matcher
-      const bashHook = settings.hooks?.PreToolUse?.find((h) => h.matcher === 'Bash');
+      const bashHook = Array.isArray(preHooks)
+        ? preHooks.find((h) => h.matcher === 'Bash')
+        : undefined;
       expect(bashHook?.hooks).toHaveLength(1);
       expect(bashHook?.hooks?.[0].command).toBe('echo "nested"');
     });
@@ -356,6 +391,8 @@ describe('Hugsy Compiler', () => {
       const settings: ClaudeSettings = {
         permissions: {
           allow: ['Read(**)'],
+          ask: [],
+          deny: [],
         },
       };
 
@@ -369,6 +406,8 @@ describe('Hugsy Compiler', () => {
         $schema: 'https://wrong.schema.com',
         permissions: {
           allow: ['Read(**)'],
+          ask: [],
+          deny: [],
         },
       };
 
@@ -384,6 +423,8 @@ describe('Hugsy Compiler', () => {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
         permissions: {
           allow: ['read(**)', '123Invalid', 'Valid(pattern)'],
+          ask: [],
+          deny: [],
         },
       };
 
@@ -451,23 +492,23 @@ describe('Hugsy Compiler', () => {
     });
 
     it('should validate hook command structure', () => {
-      const settings: ClaudeSettings = {
-        $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        hooks: {
-          PostToolUse: [
+      // Simulate data from JSON file with missing type field
+      const settings = JSON.parse(`{
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "hooks": {
+          "PostToolUse": [
             {
-              matcher: 'Write',
-              hooks: [
+              "matcher": "Write",
+              "hooks": [
                 {
-                  // Missing type
-                  command: 'echo "test"',
-                  timeout: 1000,
-                },
-              ],
-            },
-          ],
-        },
-      };
+                  "command": "echo \\"test\\"",
+                  "timeout": 1000
+                }
+              ]
+            }
+          ]
+        }
+      }`);
 
       const errors = compiler.validateSettings(settings);
 
@@ -506,7 +547,7 @@ describe('Hugsy Compiler', () => {
           PORT: 3000,
           DEBUG: true,
         },
-      } as ClaudeSettings;
+      } as unknown as ClaudeSettings;
 
       const errors = compiler.validateSettings(settings);
 
@@ -559,7 +600,7 @@ describe('Hugsy Compiler', () => {
     it('should validate numeric fields', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        cleanupPeriodDays: '7' as number,
+        cleanupPeriodDays: '7' as unknown as number,
       };
 
       const errors = compiler.validateSettings(settings);
@@ -570,8 +611,8 @@ describe('Hugsy Compiler', () => {
     it('should validate boolean fields', () => {
       const settings: ClaudeSettings = {
         $schema: 'https://json.schemastore.org/claude-code-settings.json',
-        includeCoAuthoredBy: 'true' as boolean,
-        enableAllProjectMcpServers: 1 as boolean,
+        includeCoAuthoredBy: 'true' as unknown as boolean,
+        enableAllProjectMcpServers: 1 as unknown as boolean,
       };
 
       const errors = compiler.validateSettings(settings);
@@ -650,6 +691,7 @@ describe('Hugsy Compiler', () => {
         permissions: {
           allow: ['Bash(npm *)', 'Read(**)'],
           ask: ['Bash(npm *)'],
+          deny: [],
         },
       };
 
@@ -695,6 +737,8 @@ describe('Hugsy Compiler', () => {
       const config: HugsyConfig = {
         permissions: {
           allow: ['Read(**)', 'Write(**/*.ts)'],
+          ask: [],
+          deny: [],
         },
         env: {
           NODE_ENV: 'test',
@@ -719,7 +763,7 @@ describe('Hugsy Compiler', () => {
     });
 
     it('should reject null configuration', async () => {
-      const config = null as HugsyConfig;
+      const config = null as unknown as HugsyConfig;
 
       await expect(compiler.compile(config)).rejects.toThrow('Configuration must be an object');
     });
@@ -733,6 +777,8 @@ describe('Hugsy Compiler', () => {
       const config: HugsyConfig = {
         permissions: {
           allow: ['invalid-permission-format'],
+          ask: [],
+          deny: [],
         },
       };
 
@@ -747,6 +793,8 @@ describe('Hugsy Compiler', () => {
       const config: HugsyConfig = {
         permissions: {
           allow: ['invalid-permission-format'],
+          ask: [],
+          deny: [],
         },
       };
 
@@ -797,6 +845,8 @@ describe('Hugsy Compiler', () => {
         JSON.stringify({
           permissions: {
             allow: ['Read(**)', 'Write(**/*.js)'],
+            ask: [],
+            deny: [],
           },
           hooks: {
             PreToolUse: [
@@ -816,6 +866,7 @@ describe('Hugsy Compiler', () => {
         extends: '@hugsylabs/hugsy-compiler/presets/test',
         permissions: {
           allow: ['Write(**/*.ts)'],
+          ask: [],
           deny: ['Bash(rm *)'],
         },
         hooks: {
@@ -844,11 +895,16 @@ describe('Hugsy Compiler', () => {
       expect(result.permissions?.deny).toContain('Bash(rm *)');
 
       // Should merge hooks with same matcher
-      const bashHooks = result.hooks?.PreToolUse?.find((h) => h.matcher === 'Bash');
+      const preHooks = result.hooks?.PreToolUse;
+      const bashHooks = Array.isArray(preHooks)
+        ? preHooks.find((h) => h.matcher === 'Bash')
+        : undefined;
       expect(bashHooks?.hooks).toHaveLength(2);
 
       // Should have separate Write hook
-      const writeHooks = result.hooks?.PreToolUse?.find((h) => h.matcher === 'Write');
+      const writeHooks = Array.isArray(preHooks)
+        ? preHooks.find((h) => h.matcher === 'Write')
+        : undefined;
       expect(writeHooks?.hooks).toHaveLength(1);
 
       // Should merge env

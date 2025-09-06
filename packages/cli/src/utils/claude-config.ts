@@ -98,7 +98,7 @@ export class ClaudeConfig {
         logger.success('Restored settings from backup');
         return true;
       }
-      logger.warning('No backup found');
+      logger.warn('No backup found');
       return false;
     } catch (error) {
       logger.error(`Failed to restore backup: ${String(error)}`);
@@ -135,7 +135,7 @@ export class ClaudeConfig {
 
     // Check if already installed
     if (this.isHugsyInstalled()) {
-      logger.warning('Hugsy is already installed');
+      logger.warn('Hugsy is already installed');
       return true;
     }
 

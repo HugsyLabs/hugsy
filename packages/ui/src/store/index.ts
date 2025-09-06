@@ -2,6 +2,10 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { api } from '../services/api';
 
+// Global flag to prevent duplicate loading in StrictMode
+let isLoadingSettings = false;
+let hasLoadedSettings = false;
+
 export interface LogEntry {
   id: string;
   timestamp: Date;
@@ -30,25 +34,31 @@ interface AppState {
   config: HugsyConfig;
   compiledSettings: Record<string, unknown> | null;
   compiledCommands: Record<string, { content: string; category?: string }> | null;
+  compiledSubagents: Record<
+    string,
+    { content: string; description: string; tools?: string[] }
+  > | null;
   existingSettings: Record<string, unknown> | null;
   hasExistingSettings: boolean;
   isCompiling: boolean;
   isInstalling: boolean;
   compilationError: string | null;
 
+  // History for undo/redo
+  configHistory: HugsyConfig[];
+  historyIndex: number;
+
   // Logs
   logs: LogEntry[];
   logFilter: 'all' | 'info' | 'warn' | 'error' | 'success';
 
   // UI State
-  activeTab: 'editor' | 'commands' | 'presets' | 'plugins' | 'logs';
+  activeTab: 'config' | 'packages';
   theme: 'light' | 'dark';
   editorLayout: 'horizontal' | 'vertical';
   showForceInstallDialog: boolean;
-
-  // Presets & Plugins
-  availablePresets: { name: string; description: string }[];
-  availablePlugins: { name: string; description: string; installed: boolean }[];
+  showMissingPackagesDialog: boolean;
+  missingPackages: string[];
 
   // Actions
   setConfig: (config: HugsyConfig) => void;
@@ -63,9 +73,12 @@ interface AppState {
   setTheme: (theme: AppState['theme']) => void;
   toggleEditorLayout: () => void;
   setShowForceInstallDialog: (show: boolean) => void;
-  loadPreset: (presetName: string) => void;
-  installPlugin: (pluginName: string) => void;
-  uninstallPlugin: (pluginName: string) => void;
+  setShowMissingPackagesDialog: (show: boolean) => void;
+  installMissingPackages: () => Promise<void>;
+  undo: () => void;
+  redo: () => void;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
 }
 
 const useStore = create<AppState>()(
@@ -90,62 +103,73 @@ const useStore = create<AppState>()(
       },
       compiledSettings: null,
       compiledCommands: null,
+      compiledSubagents: null,
       existingSettings: null,
       hasExistingSettings: false,
       isCompiling: false,
       isInstalling: false,
       compilationError: null,
 
+      // History for undo/redo
+      configHistory: [],
+      historyIndex: -1,
+
       logs: [],
       logFilter: 'all',
 
-      activeTab: 'editor',
+      activeTab: 'config',
       theme: 'light',
-      editorLayout: 'horizontal',
+      editorLayout: 'vertical',
       showForceInstallDialog: false,
-
-      availablePresets: [
-        { name: '@hugsy/recommended', description: 'Recommended settings for most projects' },
-        { name: '@hugsy/strict', description: 'Strict security settings' },
-        { name: '@hugsy/development', description: 'Development-friendly settings' },
-        { name: '@hugsy/showcase', description: 'Showcase all features' },
-      ],
-
-      availablePlugins: [
-        { name: 'auto-format', description: 'Auto-format code on save', installed: false },
-        { name: '@hugsylabs/plugin-git', description: 'Git integration', installed: false },
-        { name: '@hugsylabs/plugin-node', description: 'Node.js tools', installed: false },
-        {
-          name: '@hugsylabs/plugin-typescript',
-          description: 'TypeScript support',
-          installed: false,
-        },
-      ],
+      showMissingPackagesDialog: false,
+      missingPackages: [],
 
       // Actions
-      setConfig: (config) => set({ config }),
+      setConfig: (config) => {
+        const { configHistory, historyIndex } = get();
+        const newHistory = [...configHistory.slice(0, historyIndex + 1), config];
+        set({
+          config,
+          configHistory: newHistory.slice(-50), // Keep last 50 history items
+          historyIndex: newHistory.length - 1,
+        });
+      },
 
-      updateConfig: (updates) =>
-        set((state) => ({
-          config: { ...state.config, ...updates },
-        })),
+      updateConfig: (updates) => {
+        const { config, configHistory, historyIndex } = get();
+        const newConfig = { ...config, ...updates };
+        const newHistory = [...configHistory.slice(0, historyIndex + 1), newConfig];
+        set({
+          config: newConfig,
+          configHistory: newHistory.slice(-50), // Keep last 50 history items
+          historyIndex: newHistory.length - 1,
+        });
+      },
 
       loadExistingSettings: async () => {
+        // Skip if already loaded or loading to prevent duplicate logging in StrictMode
+        if (hasLoadedSettings || isLoadingSettings) {
+          return;
+        }
+
+        isLoadingSettings = true;
+
         try {
           const result = await api.getSettings();
           set({
             existingSettings: result.settings,
             hasExistingSettings: result.exists,
-            // If settings exist, also set them as compiledSettings for display
+            // Set compiledSettings to show in output editor, but not trigger success message
             compiledSettings: result.settings,
           });
 
-          if (result.exists) {
+          if (result.exists && !hasLoadedSettings) {
             const { addLog } = get();
             addLog({
               level: 'info',
-              message: 'Loaded existing .claude/settings.json',
+              message: 'Loaded .claude/settings.json',
             });
+            hasLoadedSettings = true;
           }
         } catch (error) {
           const { addLog } = get();
@@ -153,6 +177,8 @@ const useStore = create<AppState>()(
             level: 'error',
             message: `Failed to load existing settings: ${error instanceof Error ? error.message : 'Unknown error'}`,
           });
+        } finally {
+          isLoadingSettings = false;
         }
       },
 
@@ -180,6 +206,20 @@ const useStore = create<AppState>()(
             });
           }
 
+          // Check for missing packages
+          if (result.missingPackages && result.missingPackages.length > 0) {
+            set({
+              missingPackages: result.missingPackages,
+              showMissingPackagesDialog: true,
+              isCompiling: false,
+            });
+            addLog({
+              level: 'warn',
+              message: `${result.missingPackages.length} missing package(s) detected`,
+            });
+            return;
+          }
+
           // Check if compilation actually succeeded
           if (result.error) {
             set({
@@ -191,6 +231,7 @@ const useStore = create<AppState>()(
             set({
               compiledSettings: result.settings,
               compiledCommands: result.commands ?? {}, // Use commands from compilation result
+              compiledSubagents: result.subagents ?? {}, // Use subagents from compilation result
               isCompiling: false,
             });
             addLog({ level: 'success', message: 'Compilation completed successfully!' });
@@ -214,6 +255,26 @@ const useStore = create<AppState>()(
         set({ isInstalling: true });
 
         try {
+          // First compile to check for missing packages
+          const { addLog: logMsg } = get();
+          logMsg({ level: 'info', message: 'Checking configuration...' });
+
+          const compileResult = await api.compile();
+
+          // Check for missing packages before installing
+          if (compileResult.missingPackages && compileResult.missingPackages.length > 0) {
+            set({
+              missingPackages: compileResult.missingPackages,
+              showMissingPackagesDialog: true,
+              isInstalling: false,
+            });
+            logMsg({
+              level: 'warn',
+              message: `${compileResult.missingPackages.length} missing package(s) must be installed first`,
+            });
+            return;
+          }
+
           addLog({ level: 'info', message: `Running hugsy install${force ? ' --force' : ''}...` });
 
           const result = await api.installSettings(force);
@@ -278,13 +339,6 @@ const useStore = create<AppState>()(
             // Ignore error, commands refresh is optional
           }
 
-          if (!result.output?.includes('❌')) {
-            addLog({
-              level: 'success',
-              message: 'Installation completed!',
-              details: '.claude/settings.json has been updated',
-            });
-          }
           set({ isInstalling: false });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -320,45 +374,80 @@ const useStore = create<AppState>()(
 
       setShowForceInstallDialog: (show) => set({ showForceInstallDialog: show }),
 
-      loadPreset: (presetName) => {
-        const { addLog } = get();
-        addLog({ level: 'info', message: `Loading preset: ${presetName}` });
-        set((state) => ({
-          config: {
-            ...state.config,
-            extends: presetName,
-          },
-        }));
+      setShowMissingPackagesDialog: (show) => set({ showMissingPackagesDialog: show }),
+
+      installMissingPackages: async () => {
+        const { missingPackages, addLog } = get();
+
+        try {
+          addLog({ level: 'info', message: `Installing ${missingPackages.length} package(s)...` });
+
+          const result = await api.installPackages(missingPackages);
+
+          if (result.success) {
+            addLog({
+              level: 'success',
+              message: result.message ?? 'Packages installed successfully',
+            });
+
+            // Hide dialog and re-run compile
+            set({ showMissingPackagesDialog: false, missingPackages: [] });
+
+            // Re-run compile after packages are installed
+            const { compile } = get();
+            await compile();
+          } else {
+            // Show user-friendly error message
+            const errorMsg = result.error ?? 'Failed to install packages';
+            addLog({ level: 'error', message: errorMsg });
+
+            // If package not found, provide helpful suggestion
+            if (errorMsg.includes('not found in registry')) {
+              addLog({
+                level: 'info',
+                message:
+                  'Tip: Check if the package name is correct or if it has been published to npm',
+              });
+            }
+          }
+        } catch (error) {
+          addLog({
+            level: 'error',
+            message: `Failed to install packages: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          });
+        }
       },
 
-      installPlugin: (pluginName) => {
-        const { config, addLog } = get();
-        addLog({ level: 'info', message: `Installing plugin: ${pluginName}` });
-        set((state) => ({
-          config: {
-            ...state.config,
-            plugins: [...(config.plugins ?? []), pluginName],
-          },
-          availablePlugins: state.availablePlugins.map((p) =>
-            p.name === pluginName ? { ...p, installed: true } : p
-          ),
-        }));
-        addLog({ level: 'success', message: `Plugin installed: ${pluginName}` });
+      undo: () => {
+        const { configHistory, historyIndex } = get();
+        if (historyIndex > 0) {
+          const newIndex = historyIndex - 1;
+          set({
+            config: configHistory[newIndex],
+            historyIndex: newIndex,
+          });
+        }
       },
 
-      uninstallPlugin: (pluginName) => {
-        const { config, addLog } = get();
-        addLog({ level: 'info', message: `Uninstalling plugin: ${pluginName}` });
-        set((state) => ({
-          config: {
-            ...state.config,
-            plugins: (config.plugins ?? []).filter((p) => p !== pluginName),
-          },
-          availablePlugins: state.availablePlugins.map((p) =>
-            p.name === pluginName ? { ...p, installed: false } : p
-          ),
-        }));
-        addLog({ level: 'success', message: `Plugin uninstalled: ${pluginName}` });
+      redo: () => {
+        const { configHistory, historyIndex } = get();
+        if (historyIndex < configHistory.length - 1) {
+          const newIndex = historyIndex + 1;
+          set({
+            config: configHistory[newIndex],
+            historyIndex: newIndex,
+          });
+        }
+      },
+
+      canUndo: () => {
+        const { historyIndex } = get();
+        return historyIndex > 0;
+      },
+
+      canRedo: () => {
+        const { configHistory, historyIndex } = get();
+        return historyIndex < configHistory.length - 1;
       },
     }),
     {

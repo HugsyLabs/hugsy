@@ -128,7 +128,7 @@ export class ConfigManager {
       strict: {
         extends: '@hugsylabs/hugsy-core/presets/strict',
         permissions: {
-          deny: ['Write(*:*password=*)', 'Write(*:*secret=*)', 'Read(**/.env*)', 'Bash(sudo *)'],
+          deny: ['Write(**/*password*)', 'Write(**/*secret*)', 'Read(**/.env*)', 'Bash(sudo:*)'],
           ask: ['Bash(*)', 'Write(**)', 'WebSearch(*)'],
         },
         env: {
@@ -141,17 +141,17 @@ export class ConfigManager {
         extends: '@hugsylabs/hugsy-core/presets/strict',
         permissions: {
           deny: [
-            'Write(*:*password=*)',
-            'Write(*:*secret=*)',
-            'Write(*:*api_key=*)',
-            'Write(*:*token=*)',
+            'Write(**/*password*)',
+            'Write(**/*secret*)',
+            'Write(**/*api_key*)',
+            'Write(**/*token*)',
             'Read(**/.env*)',
             'Read(**/secrets/**)',
-            'Bash(curl *)',
-            'Bash(wget *)',
+            'Bash(curl:*)',
+            'Bash(wget:*)',
             'WebSearch(*)',
           ],
-          ask: ['Bash(sudo *)', 'Bash(npm *)', 'Bash(pip *)', 'Write(**)'],
+          ask: ['Bash(sudo:*)', 'Bash(npm:*)', 'Bash(pip:*)', 'Write(**)'],
         },
         env: {
           NODE_ENV: 'production',
